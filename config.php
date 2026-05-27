@@ -102,10 +102,11 @@ if (strpos($hostLower, $productionHost) !== false || getenv('UNIFY_FORCE_PRODUCT
 }
 
 // 1. Dynamic Database Connection Constants
-define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
-define('DB_USER', getenv('DB_USER') ?: 'root');
-define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : '');
-define('DB_NAME', getenv('DB_NAME') ?: 'unify_social_hub');
+define('DB_HOST', getenv('DB_HOST') ?: getenv('MYSQLHOST') ?: 'localhost');
+define('DB_PORT', getenv('DB_PORT') ?: getenv('MYSQLPORT') ?: '3306');
+define('DB_USER', getenv('DB_USER') ?: getenv('MYSQLUSER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : (getenv('MYSQLPASSWORD') !== false ? getenv('MYSQLPASSWORD') : ''));
+define('DB_NAME', getenv('DB_NAME') ?: getenv('MYSQLDATABASE') ?: 'unify_social_hub');
 
 // 2. Dynamic Meta / Instagram API Credentials
 define('FB_APP_ID', getenv('FB_APP_ID') ?: getenv('UNIFY_FB_APP_ID') ?: '');

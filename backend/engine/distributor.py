@@ -70,11 +70,18 @@ class UploadJob:
 
 
 def db_connect():
+    host = os.getenv("UNIFY_DB_HOST") or os.getenv("DB_HOST") or os.getenv("MYSQLHOST") or "localhost"
+    port = os.getenv("UNIFY_DB_PORT") or os.getenv("DB_PORT") or os.getenv("MYSQLPORT") or "3306"
+    user = os.getenv("UNIFY_DB_USER") or os.getenv("DB_USER") or os.getenv("MYSQLUSER") or "root"
+    password = os.getenv("UNIFY_DB_PASS") or os.getenv("DB_PASS") or os.getenv("MYSQLPASSWORD") or ""
+    database = os.getenv("UNIFY_DB_NAME") or os.getenv("DB_NAME") or os.getenv("MYSQLDATABASE") or "unify_social_hub"
+    
     return mysql.connector.connect(
-        host=os.getenv("UNIFY_DB_HOST", "localhost"),
-        user=os.getenv("UNIFY_DB_USER", "root"),
-        password=os.getenv("UNIFY_DB_PASS", ""),
-        database=os.getenv("UNIFY_DB_NAME", "unify_social_hub"),
+        host=host,
+        port=int(port),
+        user=user,
+        password=password,
+        database=database,
         autocommit=True,
     )
 
