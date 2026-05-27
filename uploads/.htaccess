@@ -1,0 +1,37 @@
+# ====================================================================
+# Unify Social Hub - Strictly Hardened Media Directory Protection
+# ====================================================================
+# SECURITY DIRECTIVES:
+# 1. RCE Hardening: Disables direct code execution and CGI operations.
+# 2. Handler Isolation: Explicitly removes default PHP and scripting handlers.
+# 3. Access Controls: Blocks direct HTTP queries to script extensions.
+# 4. Content Mismatches Defense: Enforces raw media type mappings to block XSS overrides.
+# ====================================================================
+
+# Step 1: Disable Directory Index Listings and CGI Executions
+Options -Indexes -ExecCGI
+
+# Step 2: Strip and remove scripting MIME handlers inside this directory tree
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .cgi .pl .py .pyc .sh .asp .aspx .shtml
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .cgi .pl .py .pyc .sh .asp .aspx .shtml
+
+# Step 3: Hard-deny HTTP file access targeting active script types
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|php8|phps|cgi|pl|py|pyc|sh|asp|aspx|shtml)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Deny,Allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Step 4: Secure Content Type forcing (Only allow media files, force raw binary downloads for others)
+<FilesMatch "\.(?i:jpg|jpeg|png|gif|webp|mp4|webm|ogv|mov|mkv|avi)$">
+    # Permit standard rendering for whitelisted graphics and videos
+    ForceType select
+</FilesMatch>
+<FilesMatch "[^.]+\.(?!(?i:jpg|jpeg|png|gif|webp|mp4|webm|ogv|mov|mkv|avi))$">
+    # Force safe octet-stream block to prevent browser scripting bypasses on unknown types
+    ForceType application/octet-stream
+</FilesMatch>

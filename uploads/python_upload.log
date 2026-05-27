@@ -1,0 +1,10 @@
+2026-05-21 12:27:54,991 - INFO - Triggered upload process for ID: 7
+2026-05-21 12:27:54,995 - INFO - package: mysql.connector.plugins
+2026-05-21 12:27:54,995 - INFO - plugin_name: mysql_native_password
+2026-05-21 12:27:54,995 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLNativePasswordAuthPlugin
+2026-05-21 12:27:55,011 - INFO - Retrieved metadata: Quality video creation  | Targets: ['youtube', 'tiktok']
+2026-05-21 12:27:55,017 - INFO - Starting YouTube upload for Quality video creation ...
+2026-05-21 12:27:55,018 - ERROR - Error uploading to youtube: YouTube OAuth token is missing. Please connect YouTube first in the Integration Vault.
+2026-05-21 12:27:55,018 - INFO - Starting TikTok upload for Quality video creation ...
+2026-05-21 12:27:59,018 - INFO - TikTok upload finished.
+2026-05-21 12:27:59,019 - INFO - All selected platform uploads finished.
