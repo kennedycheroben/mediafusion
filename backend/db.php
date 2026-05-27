@@ -22,7 +22,11 @@ try {
     // Avoid leaking sensitive details to clients. Log server-side only.
     error_log('DB connection failed: ' . $e->getMessage());
     http_response_code(500);
-    echo 'Database connection failed.';
+    if (isset($_GET['debug']) || isset($_POST['debug'])) {
+        echo 'Database connection failed: ' . htmlspecialchars($e->getMessage()) . ' (DSN: ' . htmlspecialchars($dsn) . ')';
+    } else {
+        echo 'Database connection failed.';
+    }
     exit;
 }
 ?>
