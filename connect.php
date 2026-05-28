@@ -165,7 +165,7 @@ if (isset($_GET['error'])) {
             <div class="col-md-4">
                 <div class="glass-card text-center h-100">
                     <i class="fa-brands fa-meta fa-4x mb-4" style="color: var(--meta-blue); text-shadow: 0 0 15px var(--meta-blue);"></i>
-                    <h3 class="mb-3">Meta (Facebook and Instagram)</h3>
+                    <h3 class="mb-3">Meta (FB & IG)</h3>
                     <p class="text-secondary mb-4">Link your Meta Pages.</p>
                     <a href="connect_meta.php" class="btn-magnetic w-100" style="border-color: var(--meta-blue);">
                         Connect <i class="fa-solid fa-link ms-2"></i>

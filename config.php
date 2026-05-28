@@ -90,10 +90,14 @@ $productionHost = 'unifysocialhub.great-site.net';
 $hostLower = strtolower($_SERVER['HTTP_HOST'] ?? '');
 if (strpos($hostLower, $productionHost) !== false || getenv('UNIFY_FORCE_PRODUCTION') === '1') {
     // Only set these if they are not already provided by environment (.env or server)
-    if (getenv('DB_HOST') === false) putenv('DB_HOST=sql308.infinityfree.com');
-    if (getenv('DB_USER') === false) putenv('DB_USER=if0_42025520');
-    if (getenv('DB_PASS') === false) putenv('DB_PASS=92399815');
-    if (getenv('DB_NAME') === false) putenv('DB_NAME=if0_42025520_UnifySocialHub');
+    if (strpos($hostLower, $productionHost) !== false || getenv('RAILWAY_ENVIRONMENT') !== false) {
+    
+    $prodBase = 'https://' . $productionHost;
+    if (getenv('UNIFY_OAUTH_REDIRECT_URI') === false) putenv('UNIFY_OAUTH_REDIRECT_URI=' . $prodBase . '/callback.php');
+    if (getenv('TIKTOK_REDIRECT_URI') === false) putenv('TIKTOK_REDIRECT_URI=' . $prodBase . '/callback.php');
+    if (getenv('META_REDIRECT_URI') === false) putenv('META_REDIRECT_URI=' . $prodBase . '/callback_meta.php');
+    
+}('DB_NAME=if0_42025520_UnifySocialHub');
 
     $prodBase = 'https://' . $productionHost;
     if (getenv('UNIFY_OAUTH_REDIRECT_URI') === false) putenv('UNIFY_OAUTH_REDIRECT_URI=' . $prodBase . '/callback.php');
@@ -106,8 +110,7 @@ define('DB_HOST', getenv('DB_HOST') ?: getenv('MYSQLHOST') ?: 'localhost');
 define('DB_PORT', getenv('DB_PORT') ?: getenv('MYSQLPORT') ?: '3306');
 define('DB_USER', getenv('DB_USER') ?: getenv('MYSQLUSER') ?: 'root');
 define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : (getenv('MYSQLPASSWORD') !== false ? getenv('MYSQLPASSWORD') : ''));
-define('DB_NAME', getenv('DB_NAME') ?: getenv('MYSQLDATABASE') ?: 'unify_social_hub');
-
+define('DB_NAME', getenv('DB_NAME') ?: getenv('MYSQLDATABASE') ?: 'railway');
 // 2. Dynamic Meta / Instagram API Credentials
 define('FB_APP_ID', getenv('FB_APP_ID') ?: getenv('UNIFY_FB_APP_ID') ?: '');
 define('FB_APP_SECRET', getenv('FB_APP_SECRET') ?: getenv('UNIFY_FB_APP_SECRET') ?: '');
