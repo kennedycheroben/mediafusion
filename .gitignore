@@ -1,2 +1,4 @@
 uploads/videos/*
 .env
+
+backend/python/venv/
