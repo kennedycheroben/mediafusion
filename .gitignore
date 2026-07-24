@@ -1,4 +1,42 @@
-uploads/videos/*
+# === Environment & Secrets ===
 .env
 
+# === PHP Dependencies ===
+vendor/
+
+# === Python Environment ===
+.venv/
 backend/python/venv/
+__pycache__/
+*.pyc
+
+# === User Uploads & Media ===
+uploads/
+uploads/videos/*
+
+# === Logs ===
+logs/
+*.log
+
+# === OS & Editor Files ===
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+
+# === Temporary Files ===
+*.tmp
+*.cache
+
+# === Local Reports & Notes ===
+FORENSIC_AUDIT_FULL_REPORT.md
+PHASE1_BOOTSTRAP_ARCHITECTURE.md
+SECURITY_DEPLOYMENT.md
+STORAGE_MIGRATION.md
+
+# === Local Backups & Scratch Tests ===
+backups/
+scratch/
+test_studio.js
+backend/test_builder.php
+assets/media/sample_video.mp4
