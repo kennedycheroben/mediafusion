@@ -1,5 +1,5 @@
 # ====================================================================
-# Unify Social Hub - Strictly Hardened Media Directory Protection
+# Media Fusion - Strictly Hardened Media Directory Protection
 # ====================================================================
 # SECURITY DIRECTIVES:
 # 1. RCE Hardening: Disables direct code execution and CGI operations.

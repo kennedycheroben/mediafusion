@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             btn.disabled = true;
             btn.innerHTML = '<span class="neon-spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;margin-right:8px;"></span> Resuming...';
-            statusText.innerHTML = '<span class="text-warning">Verifying chunks and uploading...</span>';
+            statusText.innerHTML = '<span class="text-warning">Verifying files and uploading...</span>';
             
             r.upload();
         });
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const discardBtns = document.querySelectorAll('.discard-btn');
     discardBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            if (!confirm('Are you sure you want to discard this upload? This will delete all cached temporary files from the server.')) {
+            if (!confirm('Are you sure you want to cancel this upload? This will delete all temporary files from the server.')) {
                 return;
             }
 
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(err => {
                 console.error(err);
-                alert('An error occurred while discarding the upload.');
+                alert('An error occurred while canceling the upload.');
             });
         });
     });

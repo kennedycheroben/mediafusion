@@ -1,25 +1,20 @@
 <?php
-/**
- * Note for XAMPP/PHP Configuration (php.ini):
- * Ensure the following are set high enough for chunked uploads to process efficiently:
- * upload_max_filesize = 50M
- * post_max_size = 50M
- * max_execution_time = 300
- */
+declare(strict_types=1);
+require_once __DIR__ . '/bootstrap.php';
 
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header("HTTP/1.0 403 Forbidden");
-    exit("User not logged in.");
+$userId = requireAuth();
+rateLimitPolicy('upload_file');
+
+// CSRF validation for POST requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_csrf();
 }
-
-require_once 'db.php';
 
 $tempDir = __DIR__ . '/../uploads/temp/';
 $finalDir = __DIR__ . '/../uploads/videos/';
 
-if (!is_dir($tempDir)) mkdir($tempDir, 0750, true);
-if (!is_dir($finalDir)) mkdir($finalDir, 0750, true);
+if (!is_dir($tempDir))  @mkdir($tempDir, 0777, true);
+if (!is_dir($finalDir)) @mkdir($finalDir, 0777, true);
 
 // Resumable.js GET request (check if chunk exists)
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -52,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $freeSpace = disk_free_space($tempDir);
         if ($freeSpace !== false && $freeSpace < $_FILES['file']['size']) {
             header("HTTP/1.0 507 Insufficient Storage");
-            echo "Failed to upload chunk: Server capacity limit reached.";
+            echo "Upload failed: Server capacity limit reached.";
             exit;
         }
 
@@ -94,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 if (!$out) {
                     header("HTTP/1.0 500 Internal Server Error");
-                    echo "Failed to create final file.";
+                    echo "Failed to save file on the server.";
                     exit;
                 }
 
@@ -119,12 +114,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $description = $_POST['description'] ?? '';
                 $platforms = $_POST['platforms'] ?? '[]'; // e.g. ["youtube", "tiktok"]
 
+                // Upload to S3 Object Storage if enabled, otherwise fall back to local file path
+                $dbFilePath = $finalFilePath;
+                require_once __DIR__ . '/s3_client.php';
+                $s3Client = new SimpleS3Client();
+                if ($s3Client->isEnabled()) {
+                    $s3Key = 'videos/' . time() . '_' . preg_replace('/[^A-Za-z0-9.\-_]/', '', $filename);
+                    $uploadedUrl = $s3Client->uploadFile($finalFilePath, $s3Key, 'video/mp4');
+                    if ($uploadedUrl) {
+                        $dbFilePath = $uploadedUrl;
+                        @unlink($finalFilePath); // Remove local file since it's hosted in the cloud
+                    }
+                }
+
                 // Insert into Database
                 $uploadId = 0;
                 if (isset($pdo)) {
                     $stmt = $pdo->prepare("INSERT INTO uploads (user_id, filename, title, description, platforms, status, file_path) 
                                            VALUES (?, ?, ?, ?, ?, 'pending', ?)");
-                    $stmt->execute([$_SESSION['user_id'], $filename, $title, $description, $platforms, $finalFilePath]);
+                    $stmt->execute([$_SESSION['user_id'], $filename, $title, $description, $platforms, $dbFilePath]);
                     $uploadId = $pdo->lastInsertId();
                 } else {
                     // Mock ID if DB not set
@@ -134,26 +142,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pythonScript = escapeshellarg(__DIR__ . '/python/uploader.py');
                 $uploadIdEscaped = escapeshellarg($uploadId);
                 $logFile = escapeshellarg(__DIR__ . '/../uploads/python_upload.log');
-                $pythonBin = escapeshellarg(__DIR__ . '/python/venv/bin/python3');
                 
-                $command = "$pythonBin $pythonScript $uploadIdEscaped > $logFile 2>&1 &";
+                $pythonBinPath = __DIR__ . '/python/venv/bin/python3';
+                if (file_exists($pythonBinPath) && is_executable($pythonBinPath)) {
+                    $pythonBin = escapeshellarg($pythonBinPath);
+                } else {
+                    $pythonBin = 'python3';
+                }
+                
+                $command = "env -u LD_LIBRARY_PATH $pythonBin $pythonScript $uploadIdEscaped > $logFile 2>&1 &";
                 exec($command);
 
                 echo "Upload complete.";
                 exit;
             } else {
-                echo "Chunk $chunkNumber uploaded successfully.";
+                echo "Uploaded successfully.";
                 exit;
             }
         } else {
             header("HTTP/1.0 500 Internal Server Error");
-            echo "Failed to upload chunk: Move uploaded file failed.";
+            echo "Upload failed. Please try again.";
             exit;
         }
     } else {
         $errCode = $_FILES['file']['error'] ?? 'Unknown';
         header("HTTP/1.0 500 Internal Server Error");
-        echo "Failed to upload chunk: File upload error code " . $errCode;
+        error_log("Failed to upload chunk: File upload error code " . $errCode);
+        echo "Upload failed. Please try again.";
         exit;
     }
 }

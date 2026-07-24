@@ -1,10 +1,13 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+declare(strict_types=1);
+require_once __DIR__ . '/backend/bootstrap.php';
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
 }
 
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/backend/db.php';
+$userId = (int)$_SESSION['user_id'];
 
 function oauthStateKey(string $platform): string {
     return 'oauth_state_' . $platform;
@@ -20,8 +23,12 @@ if (empty($state) || empty($code)) {
 }
 
 if ($platform === 'tiktok') {
+    rateLimitPolicy('oauth_callback');
+
     $expectedState = $_SESSION[oauthStateKey('tiktok')] ?? '';
-    if ($state !== $expectedState) {
+    // Use timing-safe comparison for OAuth state
+    if (empty($expectedState) || !hash_equals($expectedState, $state)) {
+        log_security_event('oauth_state_mismatch', 'platform=tiktok', $userId);
         header("Location: connect.php?error=invalid_state");
         exit;
     }
@@ -57,16 +64,14 @@ if ($platform === 'tiktok') {
 
         $tokenData = json_decode($response, true);
         
-        // Check for access token at root or in nested 'data' (TikTok v2 structure)
         $accessToken = $tokenData['access_token'] ?? ($tokenData['data']['access_token'] ?? null);
         $refreshToken = $tokenData['refresh_token'] ?? ($tokenData['data']['refresh_token'] ?? null);
         $expiresIn = $tokenData['expires_in'] ?? ($tokenData['data']['expires_in'] ?? null);
 
         if ($accessToken && $expiresIn !== null) {
             $tokenExpiry = date('Y-m-d H:i:s', time() + (int)$expiresIn);
-            $userId = $_SESSION['user_id'] ?? 1;
 
-            $stmt = $pdo->prepare("INSERT INTO oauth_tokens (user_id, platform, access_token, refresh_token, token_expiry, token_status) VALUES (?, 'tiktok', ?, ?, ?, 'active') ON DUPLICATE KEY UPDATE access_token = VALUES(access_token), refresh_token = VALUES(refresh_token), token_expiry = VALUES(token_expiry), token_status = 'active', last_error = NULL");
+            $stmt = $pdo->prepare("INSERT INTO oauth_tokens (user_id, platform, access_token, refresh_token, token_expiry, token_status) VALUES (?, 'tiktok', ?, ?, ?, 'valid') ON DUPLICATE KEY UPDATE access_token = VALUES(access_token), refresh_token = VALUES(refresh_token), token_expiry = VALUES(token_expiry), token_status = 'valid'");
             $stmt->execute([
                 $userId,
                 $accessToken,
@@ -78,6 +83,7 @@ if ($platform === 'tiktok') {
             unset($_SESSION['tiktok_code_verifier']);
             unset($_SESSION['oauth_pending_platform']);
 
+            log_security_event('oauth_success', 'platform=tiktok', $userId);
             header("Location: connect.php?status=success&platform=tiktok");
             exit;
         } else {
@@ -88,13 +94,17 @@ if ($platform === 'tiktok') {
         }
     } catch (Exception $e) {
         error_log('TikTok OAuth callback exception: ' . $e->getMessage());
-        header("Location: connect.php?error=exception&error_description=" . urlencode($e->getMessage()));
+        header("Location: connect.php?error=exception&error_description=" . urlencode('An error occurred'));
         exit;
     }
 } else {
     // Default or YouTube path
+    rateLimitPolicy('oauth_callback');
+
     $expectedState = $_SESSION[oauthStateKey('youtube')] ?? '';
-    if ($state !== $expectedState) {
+    // Use timing-safe comparison for OAuth state
+    if (empty($expectedState) || !hash_equals($expectedState, $state)) {
+        log_security_event('oauth_state_mismatch', 'platform=youtube', $userId);
         header("Location: connect.php?error=invalid_state");
         exit;
     }
@@ -135,29 +145,28 @@ if ($platform === 'tiktok') {
             $expiresIn = $tokenData['expires_in'] ?? 3600;
             $tokenExpiry = date('Y-m-d H:i:s', time() + $expiresIn);
 
-            $userId = $_SESSION['user_id'] ?? 1;
-
             $stmt = $pdo->prepare("
-                INSERT INTO oauth_tokens (user_id, platform, access_token, refresh_token, token_expiry, status)
-                VALUES (:user_id, :platform, :access_token, :refresh_token, :token_expiry, :status)
+                INSERT INTO oauth_tokens (user_id, platform, access_token, refresh_token, token_expiry, token_status)
+                VALUES (:user_id, :platform, :access_token, :refresh_token, :token_expiry, :token_status)
                 ON DUPLICATE KEY UPDATE 
                     access_token = VALUES(access_token),
                     refresh_token = COALESCE(VALUES(refresh_token), oauth_tokens.refresh_token),
                     token_expiry = VALUES(token_expiry),
-                    status = VALUES(status)
+                    token_status = VALUES(token_status)
             ");
             $stmt->execute([
-                ':user_id' => (int)$userId,
+                ':user_id' => $userId,
                 ':platform' => 'youtube',
                 ':access_token' => (string)$accessToken,
                 ':refresh_token' => $refreshToken,
                 ':token_expiry' => $tokenExpiry,
-                ':status' => 'active'
+                ':token_status' => 'valid'
             ]);
             
             unset($_SESSION[oauthStateKey('youtube')]);
             unset($_SESSION['oauth_pending_platform']);
             
+            log_security_event('oauth_success', 'platform=youtube', $userId);
             header("Location: connect.php?status=success&platform=youtube");
             exit;
         } else {

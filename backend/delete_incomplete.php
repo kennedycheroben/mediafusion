@@ -22,6 +22,9 @@ if ($id <= 0) {
 }
 
 require_once 'db.php';
+require_once __DIR__ . '/rate_limit.php';
+
+rateLimitApi();
 
 try {
     // Verify ownership and get info
@@ -35,7 +38,7 @@ try {
         exit;
     }
 
-    $tempPath = $upload['temp_target_path']; // e.g. /opt/lampp/htdocs/UnifySocialHub/uploads/temp/resumableIdentifier
+    $tempPath = $upload['temp_target_path']; // e.g. /opt/lampp/htdocs/MediaFusion/uploads/temp/resumableIdentifier
     $totalChunks = (int)$upload['total_chunks'];
 
     // Clean up temporary chunks on disk
@@ -50,8 +53,9 @@ try {
     $deleteStmt = $pdo->prepare("DELETE FROM incomplete_uploads WHERE id = ?");
     $deleteStmt->execute([$id]);
 
-    echo json_encode(['success' => true, 'message' => 'Upload discarded and temporary files deleted.']);
+    echo json_encode(['success' => true, 'message' => 'Upload canceled and temporary files deleted.']);
 } catch (Exception $e) {
+    error_log("Database error in delete_incomplete: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'A system error occurred. Please try again.']);
 }

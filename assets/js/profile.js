@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!file) return;
             
             if (file.size > 2 * 1024 * 1024) {
-                alert("File size exceeds the 2MB security threshold.");
+                alert("File size exceeds the 2MB limit.");
                 return;
             }
             
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.success) {
                     const objectUrl = URL.createObjectURL(file);
                     if (imageWrapper) {
-                        imageWrapper.innerHTML = `<img id="avatarImageElement" src="${objectUrl}" alt="Operator Avatar" style="width: 100%; height: 100%; object-fit: cover;">`;
+                        imageWrapper.innerHTML = `<img id="avatarImageElement" src="${objectUrl}" alt="Profile Photo" style="width: 100%; height: 100%; object-fit: cover;">`;
                     }
                     alert("Profile picture updated successfully.");
                 } else {
@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(err => {
                 if (imageWrapper) imageWrapper.innerHTML = originalContent;
                 console.error("AJAX Profile Upload Error:", err);
-                alert("An error occurred during local profile picture upload.");
+                alert("An error occurred while uploading your profile picture.");
             });
         });
     }

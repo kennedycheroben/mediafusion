@@ -1,6 +1,6 @@
 <?php
 /**
- * Unify Social Hub - Operator Profile Management
+ * MediaFusion - Operator Profile Management
  * 
  * CORE SECURITY & IDENTITY FEATURES:
  * 1. Self-Healing Schema Check: Assures email and avatar_path exist natively on the user structure.
@@ -40,7 +40,7 @@ try {
         $pdo->exec("ALTER TABLE users ADD COLUMN email VARCHAR(100) DEFAULT NULL UNIQUE");
     }
 } catch (Exception $e) {
-    die("Database synchronization failed: " . htmlspecialchars($e->getMessage()));
+    die("System error: " . htmlspecialchars($e->getMessage()));
 }
 
 $success = '';
@@ -91,10 +91,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $update = $pdo->prepare("UPDATE users SET display_name = ?, email = ? WHERE id = ?");
                         $update->execute([$displayName, $email, $userId]);
                     }
-                    $success = "Operator profile updated successfully.";
+                    $success = "Your profile was updated successfully.";
                 }
             } catch (Exception $e) {
-                $error = "Failed to update profile: " . $e->getMessage();
+                $error = "Could not update profile: " . $e->getMessage();
             }
         }
     }
@@ -107,14 +107,14 @@ $stmt = $pdo->prepare("SELECT id, username, display_name, created_at, avatar_pat
 $stmt->execute([$userId]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-$displayName = htmlspecialchars($user['display_name'] ?? $user['username'] ?? 'Operator');
+$displayName = htmlspecialchars($user['display_name'] ?? $user['username'] ?? 'User');
 $username    = htmlspecialchars($user['username'] ?? '—');
 $emailVal    = htmlspecialchars($user['email'] ?? '');
 $joinedDate  = isset($user['created_at']) ? date('M j, Y', strtotime($user['created_at'])) : '—';
 $profilePic  = $user['profile_pic'] ?? $user['avatar_path'] ?? '';
-$hasCustomAvatar = ($profilePic !== '' && is_file(__DIR__ . '/' . $profilePic));
+$hasCustomAvatar = ($profilePic !== '' && (str_starts_with($profilePic, 'http://') || str_starts_with($profilePic, 'https://') || is_file(__DIR__ . '/' . $profilePic)));
 
-$pageTitle  = 'Profile - Unify Social Hub';
+$pageTitle  = 'Profile - MediaFusion';
 $activePage = 'profile';
 include 'header.php';
 ?>
@@ -123,18 +123,18 @@ include 'header.php';
 <div class="container py-5" style="max-width:800px;">
 
     <div class="text-center mb-5">
-        <h1 class="display-6 text-gradient-cyan">Operator Profile</h1>
-        <p class="text-secondary">Manage your local avatar credentials and connected account details.</p>
+        <h1 class="display-6 text-gradient-cyan">Your Profile</h1>
+        <p class="text-secondary">Manage your profile and connected accounts.</p>
     </div>
 
     <!-- Alert triggers -->
     <?php if ($success !== ''): ?>
-        <div class="alert alert-success border-0 mb-4" style="background: rgba(0, 255, 102, 0.08); border-left: 3px solid var(--neon-green) !important; color: #80ffaa;">
+        <div class="alert alert-success border-0 mb-4" style="background: rgba(16, 185, 129, 0.08); border-left: 3px solid #10b981 !important; color: #047857;">
             <i class="fa-solid fa-circle-check me-2"></i><?= $success ?>
         </div>
     <?php endif; ?>
     <?php if ($error !== ''): ?>
-        <div class="alert alert-danger border-0 mb-4" style="background: rgba(255, 0, 0, 0.08); border-left: 3px solid #ff4444 !important; color: #ff8080;">
+        <div class="alert alert-danger border-0 mb-4" style="background: rgba(239, 68, 68, 0.08); border-left: 3px solid #ef4444 !important; color: #b91c1c;">
             <i class="fa-solid fa-triangle-exclamation me-2"></i><?= $error ?>
         </div>
     <?php endif; ?>
@@ -142,18 +142,18 @@ include 'header.php';
     <!-- Visual Identity Card -->
     <div class="glass-card mb-4 text-center">
         <!-- Neon border avatar frame (Interactive management module) -->
-        <div class="avatar-frame mb-3 mx-auto" id="avatarFrameContainer" style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; border: 3px solid var(--neon-cyan); box-shadow: 0 0 20px rgba(0, 243, 255, 0.25); display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.45); transition: all 0.3s ease; position: relative; cursor: pointer;">
+        <div class="avatar-frame mb-3 mx-auto" id="avatarFrameContainer" style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; border: 3px solid var(--primary-bg); box-shadow: 0 0 0 4px rgba(79,70,229,0.1), var(--card-shadow); display: flex; align-items: center; justify-content: center; background: #f1f5f9; transition: all 0.3s ease; position: relative; cursor: pointer;">
             <div id="avatarImageWrapper" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
                 <?php if ($hasCustomAvatar): ?>
-                    <img id="avatarImageElement" src="<?= htmlspecialchars($profilePic) ?>" alt="Operator Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                    <img id="avatarImageElement" src="<?= htmlspecialchars($profilePic) ?>" alt="Profile Photo" style="width: 100%; height: 100%; object-fit: cover;">
                 <?php else: ?>
-                    <i id="avatarPlaceholderIcon" class="fa-solid fa-user-astronaut" style="font-size: 3rem; color: var(--neon-cyan); filter: drop-shadow(0 0 5px rgba(0,243,255,0.4));"></i>
+                    <i id="avatarPlaceholderIcon" class="fa-solid fa-user-astronaut" style="font-size: 3rem; color: var(--primary-bg);"></i>
                 <?php endif; ?>
             </div>
             
             <!-- Hover overlay -->
             <div class="avatar-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; pointer-events: none;">
-                <i class="fa-solid fa-camera" style="color: var(--neon-cyan); font-size: 1.5rem; text-shadow: 0 0 8px var(--neon-cyan);"></i>
+                <i class="fa-solid fa-camera" style="color: #fff; font-size: 1.5rem;"></i>
                 <span style="color: #fff; font-size: 0.65rem; text-transform: uppercase; margin-top: 4px; font-weight: 600; letter-spacing: 0.5px;">Update Photo</span>
             </div>
             
@@ -162,7 +162,7 @@ include 'header.php';
         </div>
         
         <div class="text-center mb-4">
-            <h2 class="text-white profile-display-name mb-1" style="font-size:1.4rem;"><?= htmlspecialchars($displayName) ?></h2>
+            <h2 class="profile-display-name mb-1" style="font-size:1.4rem; color: var(--text-primary);"><?= htmlspecialchars($displayName) ?></h2>
             <p class="text-secondary mb-0" style="font-size:.85rem;">@<?= htmlspecialchars($username) ?></p>
         </div>
         
@@ -174,32 +174,32 @@ include 'header.php';
 
     <!-- 4. PROFILE IMAGE MANAGER & SOCIAL SYNC MODULES (Task 4) -->
     <div class="glass-card mb-4">
-        <h4 class="text-white text-gradient-magenta mb-4"><i class="fa-solid fa-image me-2"></i>Avatar Management & Social Sync</h4>
+        <h4 class="text-gradient-magenta mb-4"><i class="fa-solid fa-image me-2"></i>Profile Picture</h4>
         
         <div class="row g-4">
             <!-- Local file upload form -->
             <div class="col-md-6 border-end border-secondary pe-md-4">
-                <h5 class="text-white mb-2" style="font-size: 0.9rem;"><i class="fa-solid fa-upload me-2 text-info"></i>Local Upload</h5>
+                <h5 class="mb-2" style="font-size: 0.9rem; color: var(--text-primary);"><i class="fa-solid fa-upload me-2 text-primary"></i>Local Upload</h5>
                 <p class="text-secondary small mb-3">Upload a clean PNG, JPG, or JPEG file from your device.</p>
                 <form action="sync_social_profile.php" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="upload_local">
                     <div class="mb-3">
                         <input type="file" name="avatar_file" class="form-control form-control-cyber" accept="image/png, image/jpeg, image/jpg" required>
                     </div>
-                    <button type="submit" class="btn btn-info btn-sm w-100 fw-bold text-uppercase py-2" style="border-radius: 4px;">Upload File</button>
+                    <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold text-uppercase py-2" style="border-radius: 4px;">Upload File</button>
                 </form>
             </div>
 
             <!-- Platform synchronizer cURL download form -->
             <div class="col-md-6 ps-md-4">
-                <h5 class="text-white mb-2" style="font-size: 0.9rem;"><i class="fa-solid fa-rotate me-2 text-info"></i>Social Profile Copy</h5>
-                <p class="text-secondary small mb-3">Copy your platform profile avatar instantly to Unify via cURL.</p>
+                <h5 class="mb-2" style="font-size: 0.9rem; color: var(--text-primary);"><i class="fa-solid fa-rotate me-2 text-primary"></i>Copy from Social Account</h5>
+                <p class="text-secondary small mb-3">Copy your profile picture from your connected social account.</p>
                 <form action="sync_social_profile.php" method="POST">
                     <input type="hidden" name="action" value="sync_social">
                     <div class="mb-3">
                         <input type="url" name="social_avatar_url" class="form-control form-control-cyber py-2" style="font-size: 0.8rem;" placeholder="Paste platform image URL..." required>
                     </div>
-                    <button type="submit" class="btn btn-outline-info btn-sm w-100 fw-bold text-uppercase py-2" style="border-radius: 4px;">Mirror Social Picture</button>
+                    <button type="submit" class="btn btn-outline-primary btn-sm w-100 fw-bold text-uppercase py-2" style="border-radius: 4px;">Copy Profile Picture</button>
                 </form>
             </div>
         </div>
@@ -219,7 +219,7 @@ include 'header.php';
                            placeholder="<?= htmlspecialchars($displayName) ?>"
                            value="<?= htmlspecialchars($displayName) ?>" maxlength="60" required>
                 </div>
-                <small class="text-secondary" style="font-size:.72rem;">This name is shown across Mission Control.</small>
+                <small class="text-secondary" style="font-size:.72rem;">This name is shown on your dashboard.</small>
             </div>
 
             <!-- Recovery Email -->
@@ -231,7 +231,7 @@ include 'header.php';
                            placeholder="johnkennedy@gmail.com"
                            value="<?= $emailVal ?>" maxlength="100" required>
                 </div>
-                <small class="text-secondary" style="font-size:.72rem;">Email required to verify security password reset queries.</small>
+                <small class="text-secondary" style="font-size:.72rem;">This email is used to reset your password.</small>
             </div>
 
             <!-- Change Password -->
@@ -241,7 +241,7 @@ include 'header.php';
                 <div class="input-group">
                     <span class="input-group-text ig-icon"><i class="fa-solid fa-unlock-keyhole"></i></span>
                     <input type="password" name="current_password" id="cur-pass" class="form-control form-control-cyber" placeholder="Required if changing password" autocomplete="current-password">
-                    <button type="button" class="input-group-text" id="toggleCur" style="background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-left:none;color:var(--text-secondary);cursor:pointer;"><i class="fa-solid fa-eye" id="eyeCur"></i></button>
+                    <button type="button" class="input-group-text" id="toggleCur" style="background:#f8fafc;border:1px solid #cbd5e1;border-left:none;color:var(--text-secondary);cursor:pointer;"><i class="fa-solid fa-eye" id="eyeCur"></i></button>
                 </div>
             </div>
             
@@ -250,7 +250,7 @@ include 'header.php';
                 <div class="input-group">
                     <span class="input-group-text ig-icon"><i class="fa-solid fa-key"></i></span>
                     <input type="password" name="new_password" id="new-pass" class="form-control form-control-cyber" placeholder="Min 6 characters" autocomplete="new-password">
-                    <button type="button" class="input-group-text" id="toggleNew" style="background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-left:none;color:var(--text-secondary);cursor:pointer;"><i class="fa-solid fa-eye" id="eyeNew"></i></button>
+                    <button type="button" class="input-group-text" id="toggleNew" style="background:#f8fafc;border:1px solid #cbd5e1;border-left:none;color:var(--text-secondary);cursor:pointer;"><i class="fa-solid fa-eye" id="eyeNew"></i></button>
                 </div>
             </div>
 
@@ -262,14 +262,14 @@ include 'header.php';
 
     <!-- Danger Zone -->
     <div class="glass-card mt-4" style="border-color:rgba(255,68,68,.2);">
-        <p class="section-label" style="color:#ff6666;"><i class="fa-solid fa-radiation me-2"></i>Session Control</p>
+        <p class="section-label" style="color:#ff6666;"><i class="fa-solid fa-radiation me-2"></i>Sign Out</p>
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
             <div>
-                <p class="text-white mb-1" style="font-size:.9rem;">Terminate Current Session</p>
-                <p class="text-secondary mb-0" style="font-size:.8rem;">You will be redirected to the login portal.</p>
+                <p class="mb-1" style="font-size:.9rem; color: var(--text-primary);">Sign Out of Your Account</p>
+                <p class="text-secondary mb-0" style="font-size:.8rem;">You will be signed out of this website.</p>
             </div>
             <a href="logout.php" class="btn-magnetic" style="border-color:#ff4444;color:#ff8080;box-shadow:0 0 10px rgba(255,68,68,.15);font-size:.85rem;padding:.6rem 1.4rem;">
-                Logout <i class="fa-solid fa-arrow-right-from-bracket ms-2"></i>
+                Sign Out <i class="fa-solid fa-arrow-right-from-bracket ms-2"></i>
             </a>
         </div>
     </div>

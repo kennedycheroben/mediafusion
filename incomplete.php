@@ -2,7 +2,7 @@
 require_once 'config.php';
 require_once 'backend/db.php';
 
-$pageTitle  = 'Incomplete Uploads';
+$pageTitle  = 'Paused Uploads';
 $activePage = 'incomplete';
 $extraHead  = '<script src="https://cdnjs.cloudflare.com/ajax/libs/resumable.js/1.1.0/resumable.min.js"></script>';
 include 'header.php';
@@ -16,14 +16,14 @@ $incompleteUploads = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <main style="padding-top: 100px; min-height: 100vh;">
     <div class="container py-5">
-        <h2 class="text-gradient-cyan mb-4">Incomplete Uploads Library</h2>
+        <h2 class="text-gradient-cyan mb-4">Paused Uploads</h2>
         <p class="text-secondary mb-5">Select a file below to resume its upload. You will need to select the file from your computer again to continue.</p>
         
         <?php if (empty($incompleteUploads)): ?>
             <div class="glass-card text-center p-5">
                 <i class="fa-solid fa-check-circle fa-4x mb-3" style="color: var(--neon-green);"></i>
                 <h4>All clear!</h4>
-                <p class="text-secondary">You have no incomplete uploads.</p>
+                <p class="text-secondary">You have no paused uploads.</p>
             </div>
         <?php else: ?>
             <div class="row g-4">
@@ -32,8 +32,7 @@ $incompleteUploads = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <div class="glass-card">
                             <h5><?= htmlspecialchars($upload['file_name']) ?></h5>
                             <p class="text-secondary mb-2">
-                                Progress: <?= $upload['last_uploaded_chunk'] ?> / <?= $upload['total_chunks'] ?> chunks
-                                (<?= round(($upload['last_uploaded_chunk'] / $upload['total_chunks']) * 100) ?>%)
+                                Progress: <?= round(($upload['last_uploaded_chunk'] / $upload['total_chunks']) * 100) ?>%
                             </p>
                             <p class="text-secondary mb-3" style="font-size: 0.8rem;">Last updated: <?= $upload['updated_at'] ?></p>
                             
@@ -55,7 +54,7 @@ $incompleteUploads = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <div class="col-4">
                                     <button class="btn btn-outline-danger discard-btn w-100" 
                                             data-id="<?= $upload['id'] ?>">
-                                        <i class="fa-solid fa-trash"></i> Discard
+                                        <i class="fa-solid fa-xmark"></i> Cancel
                                     </button>
                                 </div>
                             </div>
@@ -71,5 +70,5 @@ $incompleteUploads = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <?php
 $extraScripts = '<script src="assets/js/resume_uploader.js"></script>';
-include 'footer.php';
+include_once 'includes/footer.php';
 ?>

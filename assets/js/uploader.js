@@ -70,9 +70,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const desc = document.getElementById('videoDesc').value;
         
         const platforms = [];
-        if (document.getElementById('platformYT').checked) platforms.push('youtube');
-        if (document.getElementById('platformTT').checked) platforms.push('tiktok');
-        if (document.getElementById('platformMeta').checked) platforms.push('meta');
+        if (document.getElementById('platformYT').checked)  platforms.push('youtube');
+        if (document.getElementById('platformTT').checked)  platforms.push('tiktok');
+        if (document.getElementById('platformFB').checked)  platforms.push('facebook');
+        if (document.getElementById('platformIG').checked)  platforms.push('instagram');
 
         if (platforms.length === 0) {
             alert('Please select at least one platform.');

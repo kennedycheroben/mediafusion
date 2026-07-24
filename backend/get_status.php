@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/bootstrap.php';
 
 /**
  * backend/get_status.php
@@ -9,23 +10,23 @@ declare(strict_types=1);
  * { "success": true, "uploads": [ { "id": 123, "status": "pending", "platforms": ["youtube"], "updated_at": "..." }, ... ] }
  */
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    session_start();
-}
-
 header('Content-Type: application/json; charset=utf-8');
 
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+$userId = requireAuth();
+rateLimitPolicy('api_polling');
+
+// ETag for conditional requests (avoids re-sending unchanged data)
+$cacheKey = 'status_' . $userId;
+$etag = '"' . md5($cacheKey . floor(time() / 15)) . '"';
+header("ETag: $etag");
+if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim($_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
+    http_response_code(304);
     exit;
 }
 
-require_once __DIR__ . '/db.php';
-
 try {
-    $stmt = $pdo->prepare("SELECT id, status, platforms, updated_at, created_at FROM uploads WHERE user_id = ? ORDER BY created_at DESC LIMIT 200");
-    $stmt->execute([$_SESSION['user_id']]);
+    $stmt = $pdo->prepare("SELECT id, status, video_url, platforms, updated_at, created_at FROM uploads WHERE user_id = ? ORDER BY created_at DESC LIMIT 200");
+    $stmt->execute([$userId]);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $uploads = [];
@@ -38,6 +39,7 @@ try {
         $uploads[] = [
             'id' => (int)$r['id'],
             'status' => (string)($r['status'] ?? 'unknown'),
+            'video_url' => $r['video_url'] ?? null,
             'platforms' => $platforms,
             'updated_at' => $r['updated_at'] ?? null,
             'created_at' => $r['created_at'] ?? null,
@@ -52,4 +54,3 @@ try {
     echo json_encode(['success' => false, 'message' => 'Server error']);
     exit;
 }
-

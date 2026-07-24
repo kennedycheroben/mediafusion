@@ -1,89 +1,176 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Initialize Locomotive Scroll
-    const scrollEl = document.querySelector('[data-scroll-container]');
-    let locoScroll = null;
-    if (scrollEl) {
-        locoScroll = new LocomotiveScroll({
-            el: scrollEl,
-            smooth: true,
-            multiplier: 1.2,
-            class: 'is-reveal'
-        });
+    // 1. Initialize Lenis Smooth Scroll — body as scroller (standard mode)
+    let lenis = null;
 
-        // 2. Integrate GSAP with Locomotive Scroll
-        gsap.registerPlugin(ScrollTrigger);
-        
-        locoScroll.on('scroll', ScrollTrigger.update);
-        
-        ScrollTrigger.scrollerProxy(scrollEl, {
-            scrollTop(value) {
-                return arguments.length ? locoScroll.scrollTo(value, 0, 0) : locoScroll.scroll.instance.scroll.y;
-            },
-            getBoundingClientRect() {
-                return {top: 0, left: 0, width: window.innerWidth, height: window.innerHeight};
-            },
-            pinType: scrollEl.style.transform ? "transform" : "fixed"
-        });
-        
-        ScrollTrigger.addEventListener('refresh', () => locoScroll.update());
-        ScrollTrigger.refresh();
+    try {
+        if (typeof Lenis !== 'undefined') {
+            lenis = new Lenis({
+                duration: 1.2,
+                easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+                orientation: 'vertical',
+                gestureOrientation: 'vertical',
+                smoothWheel: true,
+                wheelMultiplier: 1.2,
+                touchMultiplier: 1.5,
+                infinite: false,
+            });
+            window.lenis = lenis; // Expose for editor scroll isolation
+
+            // Register GSAP ScrollTrigger with Lenis
+            if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+                gsap.registerPlugin(ScrollTrigger);
+                lenis.on('scroll', ScrollTrigger.update);
+
+                // Coordinate with GSAP's optimized ticker loop for maximum smoothness
+                gsap.ticker.add((time) => {
+                    lenis.raf(time * 1000);
+                });
+                gsap.ticker.lagSmoothing(0);
+            } else {
+                // Fallback to requestAnimationFrame if GSAP is not loaded
+                const raf = (time) => {
+                    lenis.raf(time);
+                    requestAnimationFrame(raf);
+                };
+                requestAnimationFrame(raf);
+            }
+        }
+    } catch (err) {
+        console.error("Lenis smooth scroll initialization failed:", err);
     }
 
-    // 3. GSAP Fade-Ins
+    // Pause/Resume Lenis during Bootstrap modal cycles to prevent back-scrolling issues
+    document.addEventListener('show.bs.modal', () => {
+        if (lenis) lenis.stop();
+    });
+    document.addEventListener('hidden.bs.modal', () => {
+        if (lenis) lenis.start();
+    });
+
+
+    // 2. Custom Cursor (from animated_scroll) — hardware accelerated via GSAP
+    const cursor = document.querySelector('#cursor');
+    const cursorBlur = document.querySelector('#cursor-blur');
+
+    if (cursor && cursorBlur && window.innerWidth > 768 && typeof gsap !== 'undefined') {
+        // Center the cursor elements on the mouse pointer
+        gsap.set(cursor, { xPercent: -50, yPercent: -50, x: window.innerWidth / 2, y: window.innerHeight / 2 });
+        gsap.set(cursorBlur, { xPercent: -50, yPercent: -50, x: window.innerWidth / 2, y: window.innerHeight / 2 });
+
+        const xTo = gsap.quickTo(cursor, "x", { duration: 0.15, ease: "power3.out" });
+        const yTo = gsap.quickTo(cursor, "y", { duration: 0.15, ease: "power3.out" });
+        
+        const xBlurTo = gsap.quickTo(cursorBlur, "x", { duration: 0.4, ease: "power3.out" });
+        const yBlurTo = gsap.quickTo(cursorBlur, "y", { duration: 0.4, ease: "power3.out" });
+
+        document.addEventListener('mousemove', (e) => {
+            xTo(e.clientX);
+            yTo(e.clientY);
+            xBlurTo(e.clientX);
+            yBlurTo(e.clientY);
+        });
+
+        const interactiveElements = document.querySelectorAll(
+            'a, button, .btn-magnetic, .upload-zone, .platform-switch, .pw-toggle, .social-glow-btn, .footer-link, input[type="submit"], input[type="button"], .img-editor-tool-btn, .img-aspect-btn, .tool-dock-btn'
+        );
+        interactiveElements.forEach((el) => {
+            el.addEventListener('mouseenter', () => {
+                gsap.to(cursor, { scale: 2.5, backgroundColor: '#ffffff', duration: 0.2 });
+            });
+            el.addEventListener('mouseleave', () => {
+                gsap.to(cursor, { scale: 1, backgroundColor: 'var(--neon-cyan)', duration: 0.2 });
+            });
+        });
+
+        // inputs should restore default cursor for usability
+        const textInputs = document.querySelectorAll('input[type="text"], input[type="password"], input[type="email"], textarea, select');
+        textInputs.forEach((el) => {
+            el.addEventListener('mouseenter', () => {
+                gsap.to([cursor, cursorBlur], { opacity: 0, duration: 0.15 });
+                document.body.style.cursor = 'text';
+            });
+            el.addEventListener('mouseleave', () => {
+                gsap.to([cursor, cursorBlur], { opacity: 1, duration: 0.15 });
+                document.body.style.cursor = 'none';
+            });
+        });
+    }
+
+    // 3. Hero timeline reveal animations (from animated_scroll)
+    const heroSection = document.querySelector('.hero-section');
+    if (heroSection) {
+        const heroTL = gsap.timeline({ defaults: { ease: 'power4.out' } });
+        
+        heroTL
+            .from('.hero-title .line .word', {
+                y: 120,
+                rotation: 5,
+                opacity: 0,
+                stagger: 0.12,
+                duration: 1.2,
+            })
+            .from('.hero-section .lead', {
+                y: 40,
+                opacity: 0,
+                duration: 0.8,
+            }, '-=0.8')
+            .from('.hero-section .btn-magnetic', {
+                y: 30,
+                opacity: 0,
+                duration: 0.6,
+            }, '-=0.6')
+            .from('.orbit-container', {
+                scale: 0.8,
+                opacity: 0,
+                duration: 1.2,
+                ease: 'power3.out',
+            }, '-=1.0');
+
+        // Parallax scroll on orbit container
+        gsap.to('.orbit-container', {
+            scrollTrigger: {
+                trigger: '.hero-section',
+                start: 'top top',
+                end: 'bottom top',
+                scrub: 1.5,
+            },
+            y: -80,
+            ease: 'none',
+        });
+    }
+
+    // 4. GSAP Fade-Ins
     const fadeElements = document.querySelectorAll('.gsap-fade-in');
     fadeElements.forEach((el) => {
-        gsap.fromTo(el, 
-            { opacity: 0, y: 50 }, 
-            { 
-                opacity: 1, 
-                y: 0, 
-                duration: 1, 
+        gsap.fromTo(el,
+            { opacity: 0, y: 50 },
+            {
+                opacity: 1,
+                y: 0,
+                duration: 1,
                 ease: 'power3.out',
-                scrollTrigger: locoScroll ? {
+                scrollTrigger: {
                     trigger: el,
-                    scroller: scrollEl,
-                    start: "top 85%",
-                } : null
+                    start: 'top 85%',
+                }
             }
         );
     });
 
-    // 4. Magnetic Hover Effects for Buttons
-    const magneticBtns = document.querySelectorAll('.btn-magnetic');
-    magneticBtns.forEach(btn => {
-        btn.addEventListener('mousemove', function(e) {
-            const position = btn.getBoundingClientRect();
-            const x = e.pageX - position.left - position.width / 2;
-            const y = e.pageY - position.top - position.height / 2;
-            
-            gsap.to(btn, {
-                x: x * 0.3,
-                y: y * 0.5,
-                duration: 0.5,
-                ease: 'power3.out'
-            });
-        });
-        
-        btn.addEventListener('mouseleave', function() {
-            gsap.to(btn, {
-                x: 0,
-                y: 0,
-                duration: 0.5,
-                ease: 'elastic.out(1, 0.3)'
-            });
-        });
-    });
 
-    // 5. Update Navbar background on scroll
-    if (locoScroll) {
-        locoScroll.on('scroll', (args) => {
+
+    if (lenis) {
+        lenis.on('scroll', (e) => {
             const nav = document.querySelector('.navbar-glass');
-            if(nav) {
-                if (args.scroll.y > 50) {
-                    nav.style.background = 'rgba(10, 10, 15, 0.8)';
+            if (nav) {
+                const scrollY = (e && typeof e.scroll === 'number') ? e.scroll : (lenis ? lenis.scroll : window.scrollY);
+                if (scrollY > 50) {
+                    nav.style.background = 'rgba(10, 10, 15, 0.85)';
+                    nav.style.backdropFilter = 'blur(20px)';
                     nav.style.borderBottom = '1px solid rgba(0, 243, 255, 0.2)';
                 } else {
                     nav.style.background = 'var(--glass-bg)';
+                    nav.style.backdropFilter = 'blur(12px)';
                     nav.style.borderBottom = '1px solid var(--glass-border)';
                 }
             }
@@ -228,11 +315,32 @@ if(profileForm) {
 }
 
 // 11. Real-time Status Polling (History Dashboard)
+// Optimized: 8s interval, ETag caching, request deduplication, visibility-aware
 function startDashboardPolling() {
-    setInterval(() => {
-        fetch('backend/get_status.php', { credentials: 'same-origin' })
-            .then(res => res.json())
+    let lastEtag = null;
+    let pollInFlight = false;
+    let intervalId = null;
+
+    function poll() {
+        if (pollInFlight) return;
+        if (document.hidden) return;
+
+        pollInFlight = true;
+        const options = {
+            credentials: 'same-origin',
+            headers: {}
+        };
+        if (lastEtag) options.headers['If-None-Match'] = lastEtag;
+
+        fetch('backend/get_status.php', options)
+            .then(res => {
+                if (res.status === 304) { pollInFlight = false; return null; }
+                const newEtag = res.headers.get('ETag');
+                if (newEtag) lastEtag = newEtag;
+                return res.json();
+            })
             .then(data => {
+                pollInFlight = false;
                 if (!data || !data.success || !Array.isArray(data.uploads)) return;
                 const table = document.getElementById('uploadsTable');
                 if (!table) return;
@@ -264,8 +372,20 @@ function startDashboardPolling() {
                     badge.innerHTML = `${icon} ${status.charAt(0).toUpperCase() + status.slice(1)}`;
                 });
             })
-            .catch(() => {});
-    }, 5000);
+            .catch(() => { pollInFlight = false; });
+    }
+
+    intervalId = setInterval(poll, 8000);
+
+    // Pause polling when tab is hidden, resume when visible
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            clearInterval(intervalId);
+        } else {
+            poll();
+            intervalId = setInterval(poll, 8000);
+        }
+    });
 }
 
     if (document.getElementById('uploadsTable')) startDashboardPolling();

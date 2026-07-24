@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unify Studios Distribution Engine
+MediaFusion Studios Distribution Engine
 --------------------------------
 backend/engine/distributor.py
 
@@ -21,7 +21,7 @@ Dependencies (install via pip):
     - requests
 
 Environment variables:
-    - UNIFY_DB_HOST, UNIFY_DB_USER, UNIFY_DB_PASS, UNIFY_DB_NAME
+    - MEDIAFUSION_DB_HOST, MEDIAFUSION_DB_USER, MEDIAFUSION_DB_PASS, MEDIAFUSION_DB_NAME
 """
 
 from __future__ import annotations
@@ -70,11 +70,11 @@ class UploadJob:
 
 
 def db_connect():
-    host = os.getenv("UNIFY_DB_HOST") or os.getenv("DB_HOST") or os.getenv("MYSQLHOST") or "localhost"
-    port = os.getenv("UNIFY_DB_PORT") or os.getenv("DB_PORT") or os.getenv("MYSQLPORT") or "3306"
-    user = os.getenv("UNIFY_DB_USER") or os.getenv("DB_USER") or os.getenv("MYSQLUSER") or "root"
-    password = os.getenv("UNIFY_DB_PASS") or os.getenv("DB_PASS") or os.getenv("MYSQLPASSWORD") or ""
-    database = os.getenv("UNIFY_DB_NAME") or os.getenv("DB_NAME") or os.getenv("MYSQLDATABASE") or "unify_social_hub"
+    host = os.getenv("MEDIAFUSION_DB_HOST") or os.getenv("DB_HOST") or os.getenv("MYSQLHOST") or "localhost"
+    port = os.getenv("MEDIAFUSION_DB_PORT") or os.getenv("DB_PORT") or os.getenv("MYSQLPORT") or "3306"
+    user = os.getenv("MEDIAFUSION_DB_USER") or os.getenv("DB_USER") or os.getenv("MYSQLUSER") or "root"
+    password = os.getenv("MEDIAFUSION_DB_PASS") or os.getenv("DB_PASS") or os.getenv("MYSQLPASSWORD") or ""
+    database = os.getenv("MEDIAFUSION_DB_NAME") or os.getenv("DB_NAME") or os.getenv("MYSQLDATABASE") or "mediafusion"
     
     return mysql.connector.connect(
         host=host,
@@ -152,65 +152,247 @@ def get_token(user_id: int, platform: str) -> Optional[Dict[str, Any]]:
 
 
 def push_youtube(job: UploadJob, result: Dict[str, Any]) -> None:
-    """
-    YouTube upload implementation placeholder.
-    - Real upload requires googleapiclient + OAuth credentials bound to the user's token.
-    - This function demonstrates the integration boundary and failure reporting.
-    """
     token = get_token(job.user_id, "youtube")
     if not token or not token.get("access_token") or token.get("token_status") == "invalid":
         result["youtube"] = {"ok": False, "error": "missing_or_invalid_token"}
         return
 
-    if build is None:
-        result["youtube"] = {"ok": False, "error": "google_api_client_not_installed"}
+    access_token = token.get("access_token")
+    if access_token.startswith("mock_token_") or access_token == "sandbox_token":
+        result["youtube"] = {
+            "ok": True,
+            "video_id": "mock_yt_id",
+            "url": "https://www.youtube.com/watch?v=mock_yt_id",
+            "views": 1500,
+            "likes": 120,
+            "comments": 15
+        }
         return
 
-    # TODO: Implement resumable upload via YouTube Data API.
-    # This is intentionally a scaffold to keep the system runnable without credentials.
-    result["youtube"] = {"ok": True, "video_id": None, "note": "scaffold_only"}
+    try:
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaFileUpload
+        from google.oauth2.credentials import Credentials
+        
+        youtube_client_id = os.getenv("YOUTUBE_CLIENT_ID", "")
+        youtube_client_secret = os.getenv("YOUTUBE_CLIENT_SECRET", "")
+        if not youtube_client_id or not youtube_client_secret:
+            result["youtube"] = {"ok": False, "error": "missing_youtube_client_credentials"}
+            return
+
+        credentials = Credentials(
+            token=access_token,
+            refresh_token=token.get("refresh_token"),
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=youtube_client_id,
+            client_secret=youtube_client_secret
+        )
+        
+        from google.auth.transport.requests import Request
+        if credentials.expired or not credentials.valid:
+            credentials.refresh(Request())
+            cnx = db_connect()
+            cur = cnx.cursor()
+            cur.execute("""
+                UPDATE oauth_tokens 
+                SET access_token = %s, token_expiry = %s 
+                WHERE user_id = %s AND platform = 'youtube'
+            """, (credentials.token, credentials.expiry.strftime('%Y-%m-%d %H:%M:%S') if credentials.expiry else None, job.user_id))
+            cur.close()
+            cnx.close()
+            
+        youtube = build('youtube', 'v3', credentials=credentials)
+        body = {
+            'snippet': {
+                'title': job.title,
+                'description': job.description,
+                'categoryId': '22'
+            },
+            'status': {
+                'privacyStatus': 'public'
+            }
+        }
+        media = MediaFileUpload(job.file_path, chunksize=-1, resumable=True, mimetype='video/*')
+        request = youtube.videos().insert(part='snippet,status', body=body, media_body=media)
+        
+        response = None
+        while response is None:
+            status, response = request.next_chunk()
+            
+        video_id = response.get('id')
+        result["youtube"] = {
+            "ok": True,
+            "video_id": video_id,
+            "url": f"https://www.youtube.com/watch?v={video_id}",
+            "views": 0,
+            "likes": 0,
+            "comments": 0
+        }
+    except Exception as e:
+        result["youtube"] = {"ok": False, "error": str(e)}
 
 
 def push_meta(job: UploadJob, result: Dict[str, Any]) -> None:
-    """
-    Meta Graph API upload placeholder.
-    Requires a Page/IG token and correct endpoints (video upload differs for FB vs IG).
-    """
     token = get_token(job.user_id, "meta")
     if not token or not token.get("access_token") or token.get("token_status") == "invalid":
         result["meta"] = {"ok": False, "error": "missing_or_invalid_token"}
         return
 
-    # TODO: Implement actual Meta upload:
-    # - Facebook Pages: /{page-id}/videos
-    # - Instagram: requires IG User + container publishing flow
-    result["meta"] = {"ok": True, "post_id": None, "note": "scaffold_only"}
+    access_token = token.get("access_token")
+    if access_token.startswith("mock_token_") or access_token == "sandbox_token":
+        result["meta"] = {
+            "ok": True,
+            "post_id": "mock_meta_id",
+            "url": "https://facebook.com/watch/?v=mock",
+            "views": 1800,
+            "likes": 150,
+            "comments": 20
+        }
+        return
+
+    try:
+        import requests
+        url = "https://graph.facebook.com/v25.0/me/videos"
+        with open(job.file_path, "rb") as f:
+            files = {"source": f}
+            data = {
+                "access_token": access_token,
+                "title": job.title,
+                "description": job.description
+            }
+            response = requests.post(url, files=files, data=data)
+            
+        if response.status_code != 200:
+            raise Exception(f"Facebook upload failed: {response.text}")
+        res_data = response.json()
+        post_id = res_data.get("id")
+        result["meta"] = {
+            "ok": True,
+            "post_id": post_id,
+            "url": f"https://facebook.com/watch/?v={post_id}",
+            "views": 0,
+            "likes": 0,
+            "comments": 0
+        }
+    except Exception as e:
+        result["meta"] = {"ok": False, "error": str(e)}
 
 
 def push_tiktok(job: UploadJob, result: Dict[str, Any]) -> None:
-    """
-    TikTok upload placeholder.
-    TikTok APIs and app scopes vary by app type; implement once credentials are provisioned.
-    """
     token = get_token(job.user_id, "tiktok")
     if not token or not token.get("access_token") or token.get("token_status") == "invalid":
         result["tiktok"] = {"ok": False, "error": "missing_or_invalid_token"}
         return
 
-    result["tiktok"] = {"ok": True, "publish_id": None, "note": "scaffold_only"}
+    access_token = token.get("access_token")
+    if access_token.startswith("mock_token_") or access_token == "sandbox_token":
+        result["tiktok"] = {
+            "ok": True,
+            "publish_id": "mock_tt_id",
+            "url": "https://tiktok.com/@user/video/mock",
+            "views": 2500,
+            "likes": 340,
+            "comments": 42
+        }
+        return
+
+    try:
+        import requests
+        url = "https://open.tiktokapis.com/v2/post/publish/video/init/"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json; charset=UTF-8"
+        }
+        file_size = os.path.getsize(job.file_path)
+        chunk_size = 10 * 1024 * 1024
+        total_chunk_count = (file_size + chunk_size - 1) // chunk_size
+        
+        data = {
+            "post_info": {
+                "title": job.title,
+                "privacy_level": "PUBLIC_TO_EVERYONE",
+                "disable_comment": False,
+                "disable_duet": False,
+                "disable_stitch": False
+            },
+            "source_info": {
+                "source": "FILE_UPLOAD",
+                "video_size": file_size,
+                "chunk_size": chunk_size,
+                "total_chunk_count": total_chunk_count
+            }
+        }
+        
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code != 200:
+            raise Exception(f"TikTok initialization failed: {response.text}")
+        res_data = response.json()
+        if res_data.get("error", {}).get("code") != "ok":
+            raise Exception(f"TikTok API error: {res_data.get('error', {}).get('message')}")
+            
+        upload_url = res_data["data"]["upload_url"]
+        publish_id = res_data["data"]["publish_id"]
+        
+        with open(job.file_path, "rb") as f:
+            for i in range(total_chunk_count):
+                chunk_data = f.read(chunk_size)
+                chunk_headers = {
+                    "Content-Range": f"bytes {i * chunk_size}-{i * chunk_size + len(chunk_data) - 1}/{file_size}",
+                    "Content-Type": "video/mp4"
+                }
+                upload_resp = requests.put(upload_url, headers=chunk_headers, data=chunk_data)
+                if upload_resp.status_code not in (200, 201, 206):
+                    raise Exception(f"TikTok chunk upload failed: {upload_resp.text}")
+                    
+        result["tiktok"] = {
+            "ok": True,
+            "publish_id": publish_id,
+            "url": f"https://www.tiktok.com/@user/video/{publish_id}",
+            "views": 0,
+            "likes": 0,
+            "comments": 0
+        }
+    except Exception as e:
+        result["tiktok"] = {"ok": False, "error": str(e)}
 
 
 def run_job(job: UploadJob) -> None:
     log_line(f"Starting job upload_id={job.id} platforms={job.platforms}")
 
-    # Validate file path
+    # Validate file path (download S3 file to local temp path if it is an external URL)
+    is_url = job.file_path.startswith("http://") or job.file_path.startswith("https://")
+    temp_local_path = None
     abs_path = job.file_path
-    if not os.path.isabs(abs_path):
-        abs_path = os.path.join(PROJECT_ROOT, abs_path)
-    if not os.path.isfile(abs_path):
-        update_upload_status(job.id, "failed", {"error": "file_missing", "file_path": abs_path})
-        log_line(f"FAILED upload_id={job.id} file missing: {abs_path}")
-        return
+
+    if is_url:
+        import urllib.request
+        import tempfile
+        log_line(f"Downloading remote file from S3: {job.file_path}")
+        suffix = os.path.splitext(job.file_path)[0].split("/")[-1] if "." not in os.path.splitext(job.file_path)[1] else os.path.splitext(job.file_path)[1]
+        if "?" in suffix:
+            suffix = suffix.split("?")[0]
+        if not suffix or len(suffix) > 8:
+            suffix = ".mp4"
+        try:
+            temp_fd, temp_local_path = tempfile.mkstemp(suffix=suffix)
+            os.close(temp_fd)
+            urllib.request.urlretrieve(job.file_path, temp_local_path)
+            abs_path = temp_local_path
+            # Update job file path to local copy so upload handlers read from it
+            job.file_path = abs_path
+        except Exception as e:
+            update_upload_status(job.id, "failed", {"error": "download_failed", "url": job.file_path, "details": str(e)})
+            log_line(f"FAILED upload_id={job.id} download failed: {e}")
+            if temp_local_path and os.path.exists(temp_local_path):
+                os.remove(temp_local_path)
+            return
+    else:
+        if not os.path.isabs(abs_path):
+            abs_path = os.path.join(PROJECT_ROOT, abs_path)
+        if not os.path.isfile(abs_path):
+            update_upload_status(job.id, "failed", {"error": "file_missing", "file_path": abs_path})
+            log_line(f"FAILED upload_id={job.id} file missing: {abs_path}")
+            return
 
     update_upload_status(job.id, "processing", {"started_at": time.time(), "platforms": job.platforms})
 
@@ -228,6 +410,14 @@ def run_job(job: UploadJob) -> None:
         t.start()
     for t in threads:
         t.join()
+
+    # Clean up temp file if we downloaded it
+    if temp_local_path and os.path.exists(temp_local_path):
+        try:
+            os.remove(temp_local_path)
+            log_line(f"Cleaned up temporary download file: {temp_local_path}")
+        except Exception as e:
+            log_line(f"Failed to remove temporary file {temp_local_path}: {e}")
 
     ok = all(bool(result.get(p, {}).get("ok")) for p in job.platforms)
     result["finished_at"] = time.time()
@@ -255,4 +445,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

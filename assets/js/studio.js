@@ -8,51 +8,74 @@
  */
 function toggleStudioMode(mode) {
     const stdBtn = document.getElementById('modeStandardBtn');
+    const capBtn = document.getElementById('modeCapcutBtn');
+    const psBtn = document.getElementById('modePhotoshopBtn');
+    
     const stdWrk = document.getElementById('workspaceStandard');
-    const stuBtn = document.getElementById('modeStudioBtn');
-    const stuWrk = document.getElementById('workspaceStudio');
-
+    const capWrk = document.getElementById('capcutWorkbench');
+    const psWrk = document.getElementById('photoshopWorkbench');
+    
+    // Hide all
     if (stdBtn) stdBtn.classList.remove('active');
-    if (stuBtn) stuBtn.classList.remove('active');
+    if (capBtn) capBtn.classList.remove('active');
+    if (psBtn) psBtn.classList.remove('active');
+    
     if (stdWrk) stdWrk.classList.add('d-none');
-    if (stuWrk) stuWrk.classList.add('d-none');
+    if (capWrk) {
+        capWrk.classList.add('d-none');
+        capWrk.classList.remove('fullscreen-mode');
+    }
+    if (psWrk) {
+        psWrk.classList.add('d-none');
+        psWrk.classList.remove('fullscreen-mode');
+    }
+    
+    // Hide legacy Photopea grid workspace to avoid duplicate views
+    const wsStudio = document.getElementById('workspaceStudio');
+    if (wsStudio) wsStudio.classList.add('d-none');
 
     if (mode === 'standard') {
         if (stdBtn) stdBtn.classList.add('active');
         if (stdWrk) stdWrk.classList.remove('d-none');
-    } else {
-        if (stuBtn) stuBtn.classList.add('active');
-        if (stuWrk) stuWrk.classList.remove('d-none');
+    } else if (mode === 'video') {
+        if (capBtn) capBtn.classList.add('active');
+        if (capWrk) {
+            capWrk.classList.remove('d-none');
+            capWrk.classList.add('fullscreen-mode');
+        }
+    } else if (mode === 'photoshop') {
+        if (psBtn) psBtn.classList.add('active');
+        if (psWrk) {
+            psWrk.classList.remove('d-none');
+            psWrk.classList.add('fullscreen-mode');
+        }
     }
 }
 
-/**
- * Toggles specific parameters panel based on Image/Video category
- */
+function toggleFullscreenCapCut() {
+    const capWrk = document.getElementById('capcutWorkbench');
+    if (capWrk) {
+        capWrk.classList.toggle('fullscreen-mode');
+    }
+}
+
+function toggleFullscreenPhotoshop() {
+    const psWrk = document.getElementById('photoshopWorkbench');
+    if (psWrk) {
+        psWrk.classList.toggle('fullscreen-mode');
+    }
+}
+
 function toggleStudioControls(category) {
-    const vidControls = document.getElementById('studioVideoControls');
-    const imgControls = document.getElementById('studioImageControls');
-    const imgCanvasWrap = document.getElementById('imgEditorCanvasWrap');
-    const vidControlsCenter = document.getElementById('studioVideoControlsCenter');
-    
-    if (vidControls) vidControls.classList.add('d-none');
-    if (imgControls) imgControls.classList.add('d-none');
-    if (imgCanvasWrap) imgCanvasWrap.classList.add('d-none');
-    if (vidControlsCenter) vidControlsCenter.classList.add('d-none');
-    
-    // Update input accepts
+    // Keep category toggle legacy support for forms and inputs if needed
     const fileInput = document.getElementById('studioMediaFileInput');
-
     if (category === 'process_video') {
-        if (vidControls) vidControls.classList.remove('d-none');
-        if (vidControlsCenter) vidControlsCenter.classList.remove('d-none');
-        if (fileInput) fileInput.accept = "video/*";
+        if (fileInput) fileInput.accept = 'video/*';
     } else {
-        if (imgControls) imgControls.classList.remove('d-none');
-        if (imgCanvasWrap) imgCanvasWrap.classList.remove('d-none');
-        if (fileInput) fileInput.accept = "image/*";
+        if (fileInput) fileInput.accept = 'image/*';
     }
 }
+
 
 /**
  * Dispatches media parameters to process_studio_media.php via AJAX
@@ -65,31 +88,48 @@ function executeStudioProcess(event) {
     
     const formData = new FormData(form);
     
-    // Map file input properly depending on selected category
-    const fileInput = document.getElementById('studioMediaFileInput');
     const categorySelect = document.getElementById('studioCategorySelect');
     const category = categorySelect ? categorySelect.value : 'process_video';
+    
+    // Map file input properly depending on selected category
+    let fileInput = document.getElementById('studioMediaFileInput');
+    if (category === 'process_video') {
+        const capcutFileInput = document.getElementById('capcutMediaFileInput');
+        if (capcutFileInput && capcutFileInput.files.length > 0) {
+            fileInput = capcutFileInput;
+        }
+    }
 
-    if (!fileInput || fileInput.files.length === 0) {
-        alert("Please select a raw media file to process.");
+    const existingFileVal = document.getElementById('capcutExistingFile') ? document.getElementById('capcutExistingFile').value : '';
+
+    if ((!fileInput || fileInput.files.length === 0) && !existingFileVal) {
+        alert("Please select a raw media file or import a video into the timeline.");
         return;
     }
 
-    // Validate file size (max 500MB)
-    const maxFileSize = 500 * 1024 * 1024;
-    if (fileInput.files[0].size > maxFileSize) {
-        alert("File size exceeds 500MB limit. Please select a smaller file.");
-        return;
+    if (fileInput && fileInput.files.length > 0) {
+        // Validate file size (max 500MB)
+        const maxFileSize = 500 * 1024 * 1024;
+        if (fileInput.files[0].size > maxFileSize) {
+            alert("File size exceeds 500MB limit. Please select a smaller file.");
+            return;
+        }
     }
 
     // Ensure action is set in formData
     formData.set('action', category);
 
-    if (category === 'process_video') {
-        formData.append('video_file', fileInput.files[0]);
-    } else {
-        formData.append('image_file', fileInput.files[0]);
+    if (fileInput && fileInput.files.length > 0) {
+        if (category === 'process_video') {
+            formData.append('video_file', fileInput.files[0]);
+        } else {
+            formData.append('image_file', fileInput.files[0]);
+        }
+    } else if (existingFileVal) {
+        formData.set('existing_file', existingFileVal);
     }
+    
+    formData.append('csrf_token', window.csrfToken || '');
 
     // Show loading panels
     const placeholder = document.getElementById('studioPreviewPlaceholder');
@@ -168,6 +208,7 @@ function submitDirectDistribution(event) {
     const form = document.getElementById('studioDirectForm');
     if (!form) return;
     const formData = new FormData(form);
+    formData.append('csrf_token', window.csrfToken || '');
 
     fetch('backend/direct_distribution.php', {
         method: 'POST',
@@ -197,8 +238,13 @@ function submitDirectDistribution(event) {
 // CapCut-Style Video Trimming & Frame Preview Layout
 // ----------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
-    const mediaInput = document.getElementById('studioMediaFileInput');
     const categorySelect = document.getElementById('studioCategorySelect');
+    if (categorySelect) {
+        toggleStudioControls(categorySelect.value);
+    }
+    
+    const mediaInput = document.getElementById('studioMediaFileInput');
+
     const videoPreview = document.getElementById('studioVideoPreview');
     const previewPlaceholder = document.getElementById('studioVideoPreviewPlaceholder');
     const previewContainer = document.getElementById('studioVideoPreviewContainer');

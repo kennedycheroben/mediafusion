@@ -104,7 +104,7 @@ function refresh_youtube(PDO $pdo, array $row): void {
 
     $pdo->prepare(
         "UPDATE oauth_tokens
-         SET access_token = ?, token_expiry = DATE_ADD(NOW(), INTERVAL ? SECOND), token_status = 'active', last_error = NULL, updated_at = NOW()
+         SET access_token = ?, token_expiry = DATE_ADD(NOW(), INTERVAL ? SECOND), token_status = 'valid', updated_at = NOW()
          WHERE user_id = ? AND platform = 'youtube'"
     )->execute([$accessToken, $expiresIn, $userId]);
 
@@ -145,7 +145,7 @@ function refresh_meta(PDO $pdo, array $row): void {
 
     $pdo->prepare(
         "UPDATE oauth_tokens
-         SET access_token = ?, token_expiry = DATE_ADD(NOW(), INTERVAL ? SECOND), token_status = 'active', last_error = NULL, updated_at = NOW()
+         SET access_token = ?, token_expiry = DATE_ADD(NOW(), INTERVAL ? SECOND), token_status = 'valid', updated_at = NOW()
          WHERE user_id = ? AND platform = 'meta'"
     )->execute([$accessToken, $expiresIn, $userId]);
 
