@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Grab the page-level CSRF token once (injected by PHP csrf_field() in incomplete.php)
+    const csrfTokenEl = document.querySelector('input[name="csrf_token"]');
+    const csrfToken   = csrfTokenEl ? csrfTokenEl.value : '';
+
     const resumeBtns = document.querySelectorAll('.resume-btn');
     
     resumeBtns.forEach(btn => {
@@ -17,9 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
             testChunks: true, // Crucial for resuming!
             throttleProgressCallbacks: 1,
             query: {
+                csrf_token: csrfToken,
                 title: 'Resumed Upload',
                 description: 'Resumed from Incomplete Library',
-                platforms: '[]' // Adjust as needed or prompt user
+                platforms: '[]'
             }
         });
 
@@ -76,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const uploadId = btn.getAttribute('data-id');
             const formData = new FormData();
+            formData.append('csrf_token', csrfToken);
             formData.append('id', uploadId);
 
             fetch('backend/delete_incomplete.php', {

@@ -85,8 +85,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
+        const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
+
         // Attach metadata to the resumable query
         r.opts.query = {
+            csrf_token: csrfToken,
             title: title,
             description: desc,
             platforms: JSON.stringify(platforms)

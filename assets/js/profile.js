@@ -36,7 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
+            const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
+            const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
             const formData = new FormData();
+            formData.append('csrf_token', csrfToken);
             formData.append('action', 'local_upload');
             formData.append('avatar_file', file);
             

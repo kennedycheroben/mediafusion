@@ -34,20 +34,14 @@ if ($userId === null) {
 }
 
 // ----------------------------------------------------
-// 1. Database & Directory Self-Healing Configuration
-// ----------------------------------------------------
+// 1. Database & Directory Configuration
+// ────────────────────────────────────────────────────────────────────────
+// IMPORTANT: Schema columns (avatar_path, profile_pic, email) are provisioned
+// by database/schema_migration.sql — run ONCE before deploying to production.
+// These columns MUST exist in the users table before this script executes.
+// ────────────────────────────────────────────────────────────────────────
 try {
     require_once __DIR__ . '/backend/db.php';
-    
-    // Dynamically verify if 'avatar_path' and 'profile_pic' exist in 'users' table, otherwise alter.
-    // Self-healing database structure
-    $columns = $pdo->query("DESCRIBE users")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('avatar_path', $columns, true)) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN avatar_path VARCHAR(255) DEFAULT NULL");
-    }
-    if (!in_array('profile_pic', $columns, true)) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN profile_pic VARCHAR(255) DEFAULT NULL");
-    }
 } catch (Exception $e) {
     die("System error: " . htmlspecialchars($e->getMessage()));
 }
@@ -66,7 +60,10 @@ $errorMsg   = '';
 // 2. Controller POST Actions (Local Upload & Social Sync)
 // ----------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = isset($_POST['action']) ? trim((string)$_POST['action']) : '';
+    if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+        $errorMsg = "Security validation failed. Please refresh the page and try again.";
+    } else {
+        $action = isset($_POST['action']) ? trim((string)$_POST['action']) : '';
     
     // A. Local multipart/form-data upload
     if ($action === 'upload_local' || $action === 'local_upload') {
@@ -208,6 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(['success' => true, 'message' => $successMsg]);
         }
         exit;
+    }
     }
 }
 
@@ -411,6 +409,7 @@ $hasCustomAvatar = ($avatarPath !== '' && (str_starts_with($avatarPath, 'http://
             <div class="mb-4 pb-4 border-bottom border-light">
                 <h5 class="text-gradient-magenta mb-3"><i class="fa-solid fa-upload me-2"></i>Upload Profile Photo</h5>
                 <form action="sync_social_profile.php" method="POST" enctype="multipart/form-data">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="action" value="upload_local">
                     <div class="input-group">
                         <input type="file" name="avatar_file" class="form-control cyber-input" accept="image/png, image/jpeg, image/jpg" required>
@@ -429,6 +428,7 @@ $hasCustomAvatar = ($avatarPath !== '' && (str_starts_with($avatarPath, 'http://
                     Import your profile picture from your online channel. Simply paste your profile image link below to save it as your profile photo.
                 </p>
                 <form action="sync_social_profile.php" method="POST" id="socialSyncForm">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="action" value="sync_social">
                     <div class="mb-3">
                         <label class="form-label text-secondary small text-uppercase" style="letter-spacing: 1px; font-size: 0.7rem;">Profile Photo Link</label>
