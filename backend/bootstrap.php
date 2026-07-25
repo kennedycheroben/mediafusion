@@ -33,71 +33,6 @@ declare(strict_types=1);
 // ── 1. Environment & Constants ───────────────────────────────────────────────
 require_once __DIR__ . '/../config.php';
 
-// ── Custom Session Handler (PHP 8.1+ Strict Mode) ───────────────────────────
-
-/**
- * Custom session handler that rejects uninitialized session IDs in strict mode.
- * This prevents session fixation via crafted session IDs.
- */
-class MediaFusionSessionHandler implements SessionHandlerInterface {
-    public function read(string $id): string|false {
-        $path = $this->getSessionPath($id);
-        if (!is_file($path)) {
-            return '';
-        }
-        $data = @file_get_contents($path);
-        return $data !== false ? $data : '';
-    }
-
-    public function write(string $id, string $data): bool {
-        $path = $this->getSessionPath($id);
-        $dir = dirname($path);
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0700, true);
-        }
-        return file_put_contents($path, $data, LOCK_EX) !== false;
-    }
-
-    public function destroy(string $id): bool {
-        $path = $this->getSessionPath($id);
-        if (is_file($path)) {
-            @unlink($path);
-        }
-        return true;
-    }
-
-    public function gc(int $max_lifetime): int|false {
-        $dir = sys_get_temp_dir() . '/mediafusion_sessions';
-        if (!is_dir($dir)) {
-            return 0;
-        }
-        $count = 0;
-        foreach (glob($dir . '/sess_*') as $file) {
-            if (filemtime($file) < time() - $max_lifetime) {
-                @unlink($file);
-                $count++;
-            }
-        }
-        return $count;
-    }
-
-    public function open(string $path, string $name): bool {
-        return true;
-    }
-
-    public function close(): bool {
-        return true;
-    }
-
-    private function getSessionPath(string $id): string {
-        $dir = sys_get_temp_dir() . '/mediafusion_sessions';
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0700, true);
-        }
-        return $dir . '/sess_' . preg_replace('/[^a-zA-Z0-9]/', '', $id);
-    }
-}
-
 // ── 2. Centralized Session Bootstrap ─────────────────────────────────────────
 mediafusion_session_start();
 
@@ -126,9 +61,18 @@ function mediafusion_session_start(): void {
         return;
     }
 
+    // Configure isolated session save path if writable
+    $username = function_exists('posix_getpwuid') ? (posix_getpwuid(posix_geteuid())['name'] ?? 'default') : 'default';
+    $sessionDir = sys_get_temp_dir() . '/mediafusion_sessions_' . preg_replace('/[^a-zA-Z0-9]/', '', $username);
+    if (!is_dir($sessionDir)) {
+        @mkdir($sessionDir, 0700, true);
+    }
+    if (is_dir($sessionDir) && is_writable($sessionDir)) {
+        @ini_set('session.save_path', $sessionDir);
+    }
+
     // Set secure cookie parameters before starting session
     $isHttps = defined('APP_IS_HTTPS') && APP_IS_HTTPS;
-    $isProduction = defined('APP_IS_PRODUCTION') && APP_IS_PRODUCTION;
 
     @ini_set('session.use_only_cookies', '1');
     @ini_set('session.use_strict_mode', '1');
@@ -138,11 +82,6 @@ function mediafusion_session_start(): void {
     @ini_set('session.use_trans_sid', '0');
     @ini_set('session.sid_length', '48');
     @ini_set('session.sid_bits_per_character', '6');
-
-    // Use a custom session ID validator for strict mode
-    if (PHP_VERSION_ID >= 80100) {
-        session_set_save_handler(new MediaFusionSessionHandler());
-    }
 
     session_start();
 
@@ -217,6 +156,10 @@ function init_session_metadata(int $userId): void {
     $_SESSION['last_activity'] = $now;
     $_SESSION['last_session_regen'] = $now;
     $_SESSION['login_ip'] = resolve_client_ip();
+
+    // Regenerate CSRF token upon successful authentication
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    $_SESSION['csrf_token_generated_at'] = $now;
 
     // Store current security_version from DB so revoke checks compare correctly
     try {

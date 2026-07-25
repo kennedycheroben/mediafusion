@@ -252,7 +252,7 @@ if (rPass2) {
             if(btn) {
                 const text = formId === 'loginForm' ? 'Authenticating...' : 'Registering...';
                 btn.innerHTML = `<span class="neon-spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;margin-right:8px;"></span>${text}`;
-                btn.disabled = true;
+                setTimeout(() => { btn.disabled = true; }, 0);
             }
         });
     }

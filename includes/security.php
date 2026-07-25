@@ -17,22 +17,18 @@ if (!defined('APP_IS_PRODUCTION')) {
 // ── CSRF Protection ──────────────────────────────────────────────────────────
 
 /**
+/**
  * Generate or retrieve the CSRF token for the current session.
- * Regenerates periodically based on SESSION_REGEN_INTERVAL.
+ * Preserves token stability throughout active session.
  */
 function generate_csrf_token(): string {
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
     }
 
-    $now = time();
-    $lastGen = $_SESSION['csrf_token_generated_at'] ?? 0;
-    $interval = defined('SESSION_REGEN_INTERVAL') ? SESSION_REGEN_INTERVAL : 300;
-
-    // Regenerate token periodically or if not set
-    if (empty($_SESSION['csrf_token']) || ($now - $lastGen) > $interval) {
+    if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-        $_SESSION['csrf_token_generated_at'] = $now;
+        $_SESSION['csrf_token_generated_at'] = time();
     }
 
     return $_SESSION['csrf_token'];
@@ -88,19 +84,32 @@ function extract_csrf_token(): string {
 }
 
 /**
- * Validate CSRF on state-changing requests. Sends 403 JSON and exits on failure.
- * Use in POST/PUT/PATCH/DELETE handlers.
+ * Validate CSRF on state-changing requests. Sends 403 JSON for AJAX or redirects for HTML forms.
  */
 function require_csrf(): void {
     $token = extract_csrf_token();
     if (!verify_csrf_token($token)) {
-        http_response_code(403);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode([
-            'success' => false,
-            'error'   => 'CSRF_TOKEN_INVALID',
-            'message' => 'Security token is missing or invalid. Please refresh the page.'
-        ]);
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+               || (isset($_SERVER['HTTP_ACCEPT']) && str_contains(strtolower($_SERVER['HTTP_ACCEPT']), 'application/json'))
+               || (isset($_SERVER['CONTENT_TYPE']) && str_contains(strtolower($_SERVER['CONTENT_TYPE']), 'application/json'));
+
+        if ($isAjax) {
+            http_response_code(403);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'error'   => 'CSRF_TOKEN_INVALID',
+                'message' => 'Security token is missing or invalid. Please refresh the page.'
+            ]);
+            exit;
+        }
+
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+        $_SESSION['auth_error'] = 'Security token missing or invalid. Please refresh the page and try again.';
+        $referer = $_SERVER['HTTP_REFERER'] ?? '../login.php';
+        header("Location: $referer");
         exit;
     }
 }
