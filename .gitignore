@@ -24,6 +24,9 @@ Thumbs.db
 .vscode/
 *.swp
 
+# === IDE Search Indexes ===
+.git/cursor/
+
 # === Temporary Files ===
 *.tmp
 *.cache
