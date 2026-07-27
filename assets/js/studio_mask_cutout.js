@@ -154,7 +154,7 @@
     fetch('backend/cutout_handler.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mediaUrl: item.url, action: actionType })
+      body: JSON.stringify({ mediaUrl: item.url, action: actionType, csrf_token: window.csrfToken || '' })
     })
     .then(res => res.json())
     .then(data => {

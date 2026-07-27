@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/token_crypto.php';
 
 function log_line(string $msg): void {
     $line = '[' . date('c') . '] ' . $msg . PHP_EOL;
@@ -75,13 +76,22 @@ function mark_token_invalid(PDO $pdo, int $userId, string $platform, string $rea
 
 function refresh_youtube(PDO $pdo, array $row): void {
     $userId = (int)$row['user_id'];
-    $refreshToken = (string)($row['refresh_token'] ?? '');
-    if ($refreshToken === '') {
+    $rawRefresh = (string)($row['refresh_token'] ?? '');
+    if ($rawRefresh === '') {
         mark_token_invalid($pdo, $userId, 'youtube', 'missing_refresh_token');
         return;
     }
     if (YOUTUBE_CLIENT_ID === '' || YOUTUBE_CLIENT_SECRET === '') {
         mark_token_invalid($pdo, $userId, 'youtube', 'missing_google_client_credentials');
+        return;
+    }
+
+    try {
+        $crypto = getTokenCrypto();
+        $refreshToken = $crypto->decryptIfNeeded($rawRefresh);
+    } catch (Throwable $e) {
+        mark_token_invalid($pdo, $userId, 'youtube', 'decryption_failed');
+        log_line("YouTube decrypt failed for user {$userId}: " . $e->getMessage());
         return;
     }
 
@@ -91,6 +101,9 @@ function refresh_youtube(PDO $pdo, array $row): void {
         'refresh_token' => $refreshToken,
         'grant_type' => 'refresh_token',
     ]);
+
+    // Clear plaintext from memory
+    $refreshToken = null;
 
     $data = $resp['json'];
     if (!is_array($data) || empty($data['access_token'])) {
@@ -102,11 +115,21 @@ function refresh_youtube(PDO $pdo, array $row): void {
     $accessToken = (string)$data['access_token'];
     $expiresIn = (int)($data['expires_in'] ?? 3600);
 
+    try {
+        $encAccess = $crypto->encrypt($accessToken);
+    } catch (Throwable $e) {
+        log_line("YouTube encrypt failed for user {$userId}: " . $e->getMessage());
+        return;
+    }
+
+    // Clear plaintext from memory
+    $accessToken = null;
+
     $pdo->prepare(
         "UPDATE oauth_tokens
          SET access_token = ?, token_expiry = DATE_ADD(NOW(), INTERVAL ? SECOND), token_status = 'valid', updated_at = NOW()
          WHERE user_id = ? AND platform = 'youtube'"
-    )->execute([$accessToken, $expiresIn, $userId]);
+    )->execute([$encAccess, $expiresIn, $userId]);
 
     log_line("YouTube token refreshed for user {$userId} (expires_in={$expiresIn}s)");
 }
@@ -115,13 +138,22 @@ function refresh_meta(PDO $pdo, array $row): void {
     // Meta does not use a classic OAuth2 refresh_token for long-lived user/page tokens.
     // We treat oauth_tokens.refresh_token as the *current long-lived token* to exchange.
     $userId = (int)$row['user_id'];
-    $exchangeToken = (string)($row['refresh_token'] ?? '');
-    if ($exchangeToken === '') {
+    $rawExchange = (string)($row['refresh_token'] ?? '');
+    if ($rawExchange === '') {
         mark_token_invalid($pdo, $userId, 'meta', 'missing_exchange_token');
         return;
     }
     if (META_APP_ID === '' || META_APP_SECRET === '') {
         mark_token_invalid($pdo, $userId, 'meta', 'missing_meta_app_credentials');
+        return;
+    }
+
+    try {
+        $crypto = getTokenCrypto();
+        $exchangeToken = $crypto->decryptIfNeeded($rawExchange);
+    } catch (Throwable $e) {
+        mark_token_invalid($pdo, $userId, 'meta', 'decryption_failed');
+        log_line("Meta decrypt failed for user {$userId}: " . $e->getMessage());
         return;
     }
 
@@ -133,6 +165,9 @@ function refresh_meta(PDO $pdo, array $row): void {
         'fb_exchange_token' => $exchangeToken,
     ]);
 
+    // Clear plaintext from memory
+    $exchangeToken = null;
+
     $data = $resp['json'];
     if (!is_array($data) || empty($data['access_token'])) {
         mark_token_invalid($pdo, $userId, 'meta', 'refresh_failed');
@@ -143,11 +178,21 @@ function refresh_meta(PDO $pdo, array $row): void {
     $accessToken = (string)$data['access_token'];
     $expiresIn = (int)($data['expires_in'] ?? 60 * 60 * 24 * 60); // Meta long-lived often ~60 days
 
+    try {
+        $encAccess = $crypto->encrypt($accessToken);
+    } catch (Throwable $e) {
+        log_line("Meta encrypt failed for user {$userId}: " . $e->getMessage());
+        return;
+    }
+
+    // Clear plaintext from memory
+    $accessToken = null;
+
     $pdo->prepare(
         "UPDATE oauth_tokens
          SET access_token = ?, token_expiry = DATE_ADD(NOW(), INTERVAL ? SECOND), token_status = 'valid', updated_at = NOW()
          WHERE user_id = ? AND platform = 'meta'"
-    )->execute([$accessToken, $expiresIn, $userId]);
+    )->execute([$encAccess, $expiresIn, $userId]);
 
     log_line("Meta token refreshed for user {$userId} (expires_in={$expiresIn}s)");
 }

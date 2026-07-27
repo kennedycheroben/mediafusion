@@ -33,6 +33,11 @@ $mediaService = MediaService::getInstance($pdo);
 // ── Router ──────────────────────────────────────────────────────────────────
 $action = trim((string)($_POST['action'] ?? $_GET['action'] ?? ''));
 
+// CSRF validation for state-changing actions
+if (in_array($action, ['upload', 'rename', 'delete'], true)) {
+    require_csrf();
+}
+
 match($action) {
     'upload'   => handleUpload($userId, $mediaService),
     'list'     => handleList($userId, $mediaService),

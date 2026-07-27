@@ -86,7 +86,7 @@
     fetch('backend/tracker_handler.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'start_job', mediaId: mediaId, trackingType: type, duration: clip.duration })
+      body: JSON.stringify({ action: 'start_job', mediaId: mediaId, trackingType: type, duration: clip.duration, csrf_token: window.csrfToken || '' })
     })
     .then(res => res.json())
     .then(data => {
@@ -125,7 +125,7 @@
       fetch('backend/tracker_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get_status', jobId: jobId })
+        body: JSON.stringify({ action: 'get_status', jobId: jobId, csrf_token: window.csrfToken || '' })
       })
       .then(res => res.json())
       .then(data => {

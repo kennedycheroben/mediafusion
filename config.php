@@ -204,6 +204,9 @@ define('SESSION_IDLE_TIMEOUT',      (int)(MEDIAFUSION_get_env('SESSION_IDLE_TIME
 define('SESSION_ABSOLUTE_TIMEOUT',  (int)(MEDIAFUSION_get_env('SESSION_ABSOLUTE_TIMEOUT') ?: '28800')); // 8 hours
 define('SESSION_REGEN_INTERVAL',    (int)(MEDIAFUSION_get_env('SESSION_REGEN_INTERVAL') ?: '300'));  // 5 minutes
 
+// 9. Token Encryption Key (AES-256-GCM, 32 bytes = 64 hex chars)
+define('ENCRYPTION_KEY', MEDIAFUSION_get_env('ENCRYPTION_KEY') ?: '');
+
 // Security logging
 define('SECURITY_LOG_FILE', __DIR__ . '/logs/security.log');
 define('APP_LOG_DIR', __DIR__ . '/logs');

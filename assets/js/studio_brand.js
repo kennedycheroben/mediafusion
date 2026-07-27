@@ -40,7 +40,7 @@
     fetch('backend/brand_kit_handler.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'save_brand_kit', brandKit: activeBrandKit })
+      body: JSON.stringify({ action: 'save_brand_kit', brandKit: activeBrandKit, csrf_token: window.csrfToken || '' })
     })
     .then(res => res.json())
     .then(data => {
@@ -263,6 +263,7 @@
 
     const formData = new FormData();
     formData.append('logo_file', file);
+    formData.append('csrf_token', window.csrfToken || '');
 
     els.btnUploadLogo.disabled = true;
     els.btnUploadLogo.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Uploading...';

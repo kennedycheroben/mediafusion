@@ -24,6 +24,13 @@ $userId = requireAuth();
 // ── 2. CSRF Validation ───────────────────────────────────────────────────────
 $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN']
     ?? ($_POST['csrf_token'] ?? ($_GET['csrf_token'] ?? ''));
+// Also check JSON body for Content-Type: application/json requests
+if ($csrfToken === '') {
+    $jsonInput = json_decode(file_get_contents('php://input') ?: '{}', true);
+    if (is_array($jsonInput) && !empty($jsonInput['csrf_token'])) {
+        $csrfToken = (string)$jsonInput['csrf_token'];
+    }
+}
 if (!verify_csrf_token($csrfToken)) {
     http_response_code(403);
     echo json_encode([

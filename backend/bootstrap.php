@@ -33,21 +33,21 @@ declare(strict_types=1);
 // ── 1. Environment & Constants ───────────────────────────────────────────────
 require_once __DIR__ . '/../config.php';
 
-// ── 2. Centralized Session Bootstrap ─────────────────────────────────────────
-mediafusion_session_start();
-
-// ── 3. Database Connection ───────────────────────────────────────────────────
-require_once __DIR__ . '/db.php';
-
-// ── 4. CSRF Protection ───────────────────────────────────────────────────────
+// ── 2. CSRF Protection (must load before session start so log_security_event is available)
 require_once __DIR__ . '/../includes/security.php';
 
-// ── 5. Rate Limiting ─────────────────────────────────────────────────────────
+// ── 3. Rate Limiting ─────────────────────────────────────────────────────────
 require_once __DIR__ . '/rate_limit.php';
 
-// ── 6. Storage Abstraction ───────────────────────────────────────────────────
+// ── 4. Storage Abstraction ───────────────────────────────────────────────────
 require_once __DIR__ . '/storage/autoload.php';
 require_once __DIR__ . '/storage/config.php';
+
+// ── 5. Database Connection ───────────────────────────────────────────────────
+require_once __DIR__ . '/db.php';
+
+// ── 6. Centralized Session Bootstrap (after all helpers are loaded) ───────────
+mediafusion_session_start();
 
 // ── Session Lifecycle Functions ───────────────────────────────────────────────
 
@@ -253,7 +253,7 @@ function is_session_security_valid(int $userId): bool {
         return $dbVersion === $sessionVersion;
     } catch (Throwable $e) {
         error_log("Security version check failed for user {$userId}: " . $e->getMessage());
-        return true; // Fail-open for availability (log but don't lock out)
+        return false; // Fail-closed: deny access if DB check fails (prevents bypass on DB errors)
     }
 }
 

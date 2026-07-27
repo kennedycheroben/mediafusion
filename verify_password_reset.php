@@ -80,7 +80,15 @@ if ($isValidRequest && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $update = $pdo->prepare("UPDATE users SET password_hash = ? WHERE email = ?");
             $update->execute([$newHash, $email]);
 
-            // Step B: Expunge reset tokens to prevent replay attacks (critical security protocol)
+            // Step B: Invalidate all existing sessions for this user (security requirement)
+            $userStmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+            $userStmt->execute([$email]);
+            $resetUserId = (int)$userStmt->fetchColumn();
+            if ($resetUserId > 0) {
+                invalidate_all_user_sessions($resetUserId, 'password_reset');
+            }
+
+            // Step C: Expunge reset tokens to prevent replay attacks (critical security protocol)
             $delete = $pdo->prepare("DELETE FROM password_resets WHERE email = ?");
             $delete->execute([$email]);
 

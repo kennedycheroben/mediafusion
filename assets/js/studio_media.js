@@ -92,6 +92,7 @@
     const formData = new FormData();
     formData.append('action', 'upload');
     formData.append('media_file', file);
+    formData.append('csrf_token', window.csrfToken || '');
 
     // Progress
     xhr.upload.addEventListener('progress', (e) => {
@@ -560,6 +561,7 @@
       fd.append('action', 'rename');
       fd.append('id', item.id);
       fd.append('name', newName);
+      fd.append('csrf_token', window.csrfToken || '');
       fetch(API, { method: 'POST', body: fd })
         .then(r => r.json())
         .then(data => {
@@ -590,6 +592,7 @@
     const fd = new FormData();
     fd.append('action', 'delete');
     fd.append('id', item.id);
+    fd.append('csrf_token', window.csrfToken || '');
 
     fetch(API, { method: 'POST', body: fd })
       .then(r => r.json())

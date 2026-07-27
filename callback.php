@@ -71,11 +71,16 @@ if ($platform === 'tiktok') {
         if ($accessToken && $expiresIn !== null) {
             $tokenExpiry = date('Y-m-d H:i:s', time() + (int)$expiresIn);
 
+            require_once __DIR__ . '/backend/token_crypto.php';
+            $crypto = getTokenCrypto();
+            $encAccess = $crypto->encrypt($accessToken);
+            $encRefresh = $refreshToken !== null ? $crypto->encrypt($refreshToken) : null;
+
             $stmt = $pdo->prepare("INSERT INTO oauth_tokens (user_id, platform, access_token, refresh_token, token_expiry, token_status) VALUES (?, 'tiktok', ?, ?, ?, 'valid') ON DUPLICATE KEY UPDATE access_token = VALUES(access_token), refresh_token = VALUES(refresh_token), token_expiry = VALUES(token_expiry), token_status = 'valid'");
             $stmt->execute([
                 $userId,
-                $accessToken,
-                $refreshToken,
+                $encAccess,
+                $encRefresh,
                 $tokenExpiry
             ]);
 
@@ -145,6 +150,11 @@ if ($platform === 'tiktok') {
             $expiresIn = $tokenData['expires_in'] ?? 3600;
             $tokenExpiry = date('Y-m-d H:i:s', time() + $expiresIn);
 
+            require_once __DIR__ . '/backend/token_crypto.php';
+            $crypto = getTokenCrypto();
+            $encAccess = $crypto->encrypt($accessToken);
+            $encRefresh = $refreshToken !== null ? $crypto->encrypt($refreshToken) : null;
+
             $stmt = $pdo->prepare("
                 INSERT INTO oauth_tokens (user_id, platform, access_token, refresh_token, token_expiry, token_status)
                 VALUES (:user_id, :platform, :access_token, :refresh_token, :token_expiry, :token_status)
@@ -157,8 +167,8 @@ if ($platform === 'tiktok') {
             $stmt->execute([
                 ':user_id' => $userId,
                 ':platform' => 'youtube',
-                ':access_token' => (string)$accessToken,
-                ':refresh_token' => $refreshToken,
+                ':access_token' => $encAccess,
+                ':refresh_token' => $encRefresh,
                 ':token_expiry' => $tokenExpiry,
                 ':token_status' => 'valid'
             ]);

@@ -133,6 +133,97 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!filter_var($externalUrl, FILTER_VALIDATE_URL)) {
             $errorMsg = "Invalid URL format.";
         } else {
+            // SSRF protection: validate scheme and block internal network addresses
+            $urlParts = parse_url($externalUrl);
+            $scheme = strtolower($urlParts['scheme'] ?? '');
+            $host = strtolower($urlParts['host'] ?? '');
+
+            // SSRF helper: check if a host is a private/internal address
+            $isBlocked = false;
+            if ($scheme !== 'https') {
+                $errorMsg = "Only HTTPS URLs are allowed for profile image sync.";
+                $isBlocked = true;
+            } elseif ($host === '') {
+                $errorMsg = "The URL points to a private or internal address and is not allowed.";
+                $isBlocked = true;
+            } else {
+                // Try to parse host as IP address for binary-range checks
+                $ipBin = @inet_pton($host);
+                if ($ipBin !== false) {
+                    // IPv6 binary checks
+                    if (strlen($ipBin) === 16) {
+                        // Unspecified address ::
+                        if ($ipBin === @inet_pton('::')) {
+                            $isBlocked = true;
+                        }
+                        // Loopback ::1
+                        elseif ($ipBin === @inet_pton('::1')) {
+                            $isBlocked = true;
+                        }
+                        // IPv4-mapped IPv6: ::ffff:x.x.x.x
+                        elseif (str_starts_with($ipBin, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff")) {
+                            // Extract the embedded IPv4 address and re-check
+                            $embeddedIPv4 = inet_ntop(substr($ipBin, 12));
+                            if ($embeddedIPv4 !== false) {
+                                $v4Bin = @inet_pton($embeddedIPv4);
+                                if ($v4Bin !== false) {
+                                    $octet = ord($v4Bin[0]);
+                                    // 10.0.0.0/8
+                                    if ($octet === 10) $isBlocked = true;
+                                    // 172.16.0.0/12
+                                    elseif ($octet === 172 && ord($v4Bin[1]) >= 16 && ord($v4Bin[1]) <= 31) $isBlocked = true;
+                                    // 192.168.0.0/16
+                                    elseif ($octet === 192 && ord($v4Bin[1]) === 168) $isBlocked = true;
+                                    // 169.254.0.0/16 (link-local / cloud metadata)
+                                    elseif ($octet === 169 && ord($v4Bin[1]) === 254) $isBlocked = true;
+                                    // 0.0.0.0/8
+                                    elseif ($octet === 0) $isBlocked = true;
+                                    // 127.0.0.0/8
+                                    elseif ($octet === 127) $isBlocked = true;
+                                }
+                            }
+                        }
+                        // Unique Local Address fc00::/7
+                        elseif ((ord($ipBin[0]) & 0xfe) === 0xfc) {
+                            $isBlocked = true;
+                        }
+                        // Link-local fe80::/10
+                        elseif ((ord($ipBin[0]) === 0xfe) && ((ord($ipBin[1]) & 0xc0) === 0x80)) {
+                            $isBlocked = true;
+                        }
+                        // Site-local fec0::/10 (deprecated but still assigned)
+                        elseif ((ord($ipBin[0]) === 0xfe) && ((ord($ipBin[1]) & 0xc0) === 0xc0)) {
+                            $isBlocked = true;
+                        }
+                    }
+                    // IPv4 binary checks
+                    elseif (strlen($ipBin) === 4) {
+                        $octet = ord($ipBin[0]);
+                        if ($octet === 0 || $octet === 10 || $octet === 127) $isBlocked = true;
+                        elseif ($octet === 172 && ord($ipBin[1]) >= 16 && ord($ipBin[1]) <= 31) $isBlocked = true;
+                        elseif ($octet === 192 && ord($ipBin[1]) === 168) $isBlocked = true;
+                        elseif ($octet === 169 && ord($ipBin[1]) === 254) $isBlocked = true;
+                    }
+                } else {
+                    // Hostname-based blocking (not an IP literal)
+                    if ($host === 'localhost' || $host === 'localhost.localdomain'
+                        || preg_match('/^127\./', $host) || preg_match('/^10\./', $host)
+                        || preg_match('/^172\.(1[6-9]|2[0-9]|3[01])\./', $host)
+                        || preg_match('/^192\.168\./', $host) || preg_match('/^169\.254\./', $host)
+                        || preg_match('/^0\./', $host)
+                        || str_ends_with($host, '.local') || str_ends_with($host, '.internal')
+                        || str_ends_with($host, '.localhost')
+                    ) {
+                        $isBlocked = true;
+                    }
+                }
+            }
+
+            if ($isBlocked) {
+                if ($errorMsg === '') {
+                    $errorMsg = "The URL points to a private or internal address and is not allowed.";
+                }
+            } else {
             // Establish a high-speed secure cURL download transaction
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $externalUrl);
@@ -192,6 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } else {
                 $errorMsg = "Could not connect or download profile image from server.";
+            }
             }
         }
     }

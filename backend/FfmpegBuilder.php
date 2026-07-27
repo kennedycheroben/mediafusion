@@ -69,6 +69,7 @@ class FfmpegBuilder {
             if ($key !== null) {
                 $localPath = $this->urlResolver->getLocalPath($key);
                 if ($localPath !== null) {
+                    $localPath = $this->validateFilePath($localPath);
                     return $localPath;
                 }
                 // File is in object storage — download to temp
@@ -85,7 +86,8 @@ class FfmpegBuilder {
             $urlPath = parse_url($resolved, PHP_URL_PATH);
             if ($urlPath !== null) {
                 $localPath = $this->baseDir . '/' . ltrim($urlPath, '/');
-                if (is_file($localPath)) {
+                $localPath = $this->validateFilePath($localPath);
+                if ($localPath !== null && is_file($localPath)) {
                     return $localPath;
                 }
             }
@@ -101,7 +103,8 @@ class FfmpegBuilder {
         }
         
         $localPath = $this->baseDir . '/' . $url;
-        if (is_file($localPath)) {
+        $localPath = $this->validateFilePath($localPath);
+        if ($localPath !== null && is_file($localPath)) {
             return $localPath;
         }
         return null;
@@ -117,11 +120,79 @@ class FfmpegBuilder {
     }
 
     private function escapeText(string $text): string {
+        // DEPRECATED: Kept for backward compatibility only.
+        // New code should use writeTextFile() + textfile= parameter.
         $text = str_replace('\\', '\\\\', $text);
         $text = str_replace("'", "'\\\\''", $text);
         $text = str_replace(':', '\\:', $text);
         $text = str_replace('%', '\\%', $text);
         return $text;
+    }
+
+    /**
+     * Write user text to a temporary file for safe use with FFmpeg textfile= parameter.
+     * This eliminates filter graph injection by never interpolating user text into the command.
+     *
+     * @return string|null The path to the temp file, or null on failure
+     */
+    private function writeTextFile(string $text): ?string {
+        if ($text === '') return null;
+        $tmpFile = tempnam(sys_get_temp_dir(), 'mf_txt_');
+        if ($tmpFile === false) return null;
+        // Write UTF-8 text with BOM stripping (FFmpeg expects plain UTF-8)
+        $clean = str_replace(["\r\n", "\r"], "\n", $text);
+        if (file_put_contents($tmpFile, $clean) === false) {
+            @unlink($tmpFile);
+            return null;
+        }
+        $this->tempFiles[] = $tmpFile;
+        return $tmpFile;
+    }
+
+    /**
+     * Validate a numeric parameter within allowed range.
+     * Returns the clamped value or null if invalid.
+     */
+    private function validateNumeric($value, float $min, float $max, float $default): float {
+        $val = filter_var($value, FILTER_VALIDATE_FLOAT);
+        if ($val === false || $val < $min || $val > $max) {
+            return $default;
+        }
+        return $val;
+    }
+
+    /**
+     * Validate a color value (hex or named color).
+     * Returns safe color string or default.
+     */
+    private function validateColor($color, string $default = 'white'): string {
+        if (!is_string($color)) return $default;
+        // Allow hex colors: #RGB, #RRGGBB, #RRGGBBAA
+        if (preg_match('/^#[a-fA-F0-9]{3,8}$/', $color)) {
+            return $color;
+        }
+        // Allow named colors (alphanumeric + underscore only)
+        if (preg_match('/^[a-zA-Z0-9_]+$/', $color) && strlen($color) <= 30) {
+            return $color;
+        }
+        return $default;
+    }
+
+    /**
+     * Validate a file path using realpath containment check.
+     * Ensures the resolved path stays within the allowed base directory.
+     */
+    private function validateFilePath(string $path): ?string {
+        if ($path === '' || !is_string($path)) return null;
+        // Resolve and check containment
+        $real = realpath($path);
+        if ($real === false) return null;
+        $baseReal = realpath($this->baseDir);
+        if ($baseReal === false) return null;
+        if (!str_starts_with($real, $baseReal . '/') && $real !== $baseReal) {
+            return null; // Path traversal attempt
+        }
+        return $real;
     }
 
     public function buildFfmpegCommand(string $outPath, string $progressLog): string {
@@ -164,8 +235,8 @@ class FfmpegBuilder {
 
             foreach ($trackItems as $item) {
                 $type = $item['type'];
-                $start = floatval($item['start'] ?? 0);
-                $dur = floatval($item['duration'] ?? 5);
+                $start = $this->validateNumeric($item['start'] ?? 0, 0, 86400, 0);
+                $dur = $this->validateNumeric($item['duration'] ?? 5, 0.1, 86400, 5);
                 $end = $start + $dur;
                 
                 $outStream = "[v{$visualIndex}]";
@@ -179,7 +250,7 @@ class FfmpegBuilder {
                     $inStream = "[{$inIdx}:v]";
                     
                     // Basic Trim
-                    $sourceStart = floatval($item['sourceStart'] ?? 0);
+                    $sourceStart = $this->validateNumeric($item['sourceStart'] ?? 0, 0, 86400, 0);
                     if ($type === 'video') {
                         $filters[] = "trim=start={$sourceStart}:duration={$dur}";
                         $filters[] = "setpts=PTS-STARTPTS";
@@ -191,8 +262,8 @@ class FfmpegBuilder {
                     }
 
                     // Speed
-                    $speed = floatval($item['speed'] ?? 1.0);
-                    if ($speed !== 1.0 && $speed > 0) {
+                    $speed = $this->validateNumeric($item['speed'] ?? 1.0, 0.1, 10.0, 1.0);
+                    if ($speed !== 1.0) {
                         $ptsFactor = 1.0 / $speed;
                         $filters[] = "setpts={$ptsFactor}*PTS";
                     }
@@ -200,9 +271,9 @@ class FfmpegBuilder {
                     // Filters (Brightness/Contrast/Saturation)
                     $f = $item['filters'] ?? [];
                     if (!empty($f)) {
-                        $b = floatval($f['brightness'] ?? 100);
-                        $c = floatval($f['contrast'] ?? 100);
-                        $s = floatval($f['saturation'] ?? 100);
+                        $b = $this->validateNumeric($f['brightness'] ?? 100, 0, 200, 100);
+                        $c = $this->validateNumeric($f['contrast'] ?? 100, 0, 200, 100);
+                        $s = $this->validateNumeric($f['saturation'] ?? 100, 0, 200, 100);
                         if ($b !== 100 || $c !== 100 || $s !== 100) {
                             $normB = ($b - 100) / 100.0;
                             $normC = $c / 100.0;
@@ -212,50 +283,58 @@ class FfmpegBuilder {
                     }
 
                     // Scale
-                    $itemW = intval($item['width'] ?? $w);
-                    $itemH = intval($item['height'] ?? $h);
+                    $itemW = (int)$this->validateNumeric($item['width'] ?? $w, 1, 7680, $w);
+                    $itemH = (int)$this->validateNumeric($item['height'] ?? $h, 1, 4320, $h);
                     $filters[] = "scale={$itemW}:{$itemH}:force_original_aspect_ratio=decrease,pad={$itemW}:{$itemH}:(ow-iw)/2:(oh-ih)/2";
 
                     $this->filterComplex[] = $inStream . implode(',', $filters) . $outStream;
 
                     // Overlay
-                    $posX = intval($item['position']['x'] ?? 0);
-                    $posY = intval($item['position']['y'] ?? 0);
+                    $posX = (int)$this->validateNumeric($item['position']['x'] ?? 0, -7680, 7680, 0);
+                    $posY = (int)$this->validateNumeric($item['position']['y'] ?? 0, -4320, 4320, 0);
                     $nextBase = "[base_next_{$visualIndex}]";
                     $this->filterComplex[] = "[{$lastVisualLayer}]{$outStream}overlay=x={$posX}:y={$posY}:enable='between(t,{$start},{$end})'{$nextBase}";
                     $lastVisualLayer = rtrim(ltrim($nextBase, '['), ']');
                     
                     $visualIndex++;
                 } else if ($type === 'text') {
-                    $txt = $this->escapeText($item['content'] ?? '');
+                    $txt = $item['content'] ?? '';
                     if ($txt === '') continue;
+
+                    // SECURITY: Write text to temp file and use textfile= to prevent injection
+                    $textFile = $this->writeTextFile($txt);
+                    if ($textFile === null) continue;
+                    // Escape the file path for FFmpeg (single quotes, path separators)
+                    $escapedPath = str_replace("'", "'\\''", $textFile);
                     
                     $fontfile = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
-                    $fontSize = intval($item['style']['fontSize'] ?? 48);
-                    $color = $item['style']['color'] ?? 'white';
-                    if (!preg_match('/^#[a-fA-F0-9]{3,8}$|^[a-zA-Z0-9_]+$/', $color)) {
-                        $color = 'white';
-                    }
-                    $posX = intval($item['position']['x'] ?? 0);
-                    $posY = intval($item['position']['y'] ?? 0);
+                    $fontSize = (int)$this->validateNumeric($item['style']['fontSize'] ?? 48, 6, 500, 48);
+                    $color = $this->validateColor($item['style']['color'] ?? 'white');
+                    $posX = (int)$this->validateNumeric($item['position']['x'] ?? 0, -7680, 7680, 0);
+                    $posY = (int)$this->validateNumeric($item['position']['y'] ?? 0, -4320, 4320, 0);
                     
                     $nextBase = "[base_next_txt_{$visualIndex}]";
-                    $this->filterComplex[] = "[{$lastVisualLayer}]drawtext=fontfile='{$fontfile}':text='{$txt}':x={$posX}:y={$posY}:fontsize={$fontSize}:fontcolor='{$color}':enable='between(t,{$start},{$end})':shadowx=2:shadowy=2:shadowcolor=black@0.8{$nextBase}";
+                    $this->filterComplex[] = "[{$lastVisualLayer}]drawtext=fontfile='{$fontfile}':textfile='{$escapedPath}':x={$posX}:y={$posY}:fontsize={$fontSize}:fontcolor='{$color}':enable='between(t,{$start},{$end})':shadowx=2:shadowy=2:shadowcolor=black@0.8{$nextBase}";
                     $lastVisualLayer = rtrim(ltrim($nextBase, '['), ']');
                     $visualIndex++;
                 } else if ($type === 'sticker') {
-                    $txt = $this->escapeText($item['content'] ?? '');
+                    $txt = $item['content'] ?? '';
                     if ($txt === '') continue;
+
+                    // SECURITY: Write text to temp file and use textfile= to prevent injection
+                    $textFile = $this->writeTextFile($txt);
+                    if ($textFile === null) continue;
+                    $escapedPath = str_replace("'", "'\\''", $textFile);
                     
                     $fontfile = '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf';
                     if (!is_file($fontfile)) $fontfile = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
                     
                     $fontSize = 120; // default large size for sticker
-                    $posX = intval($item['position']['x'] ?? 0);
-                    $posY = intval($item['position']['y'] ?? 0);
+                    $posX = (int)$this->validateNumeric($item['position']['x'] ?? 0, -7680, 7680, 0);
+                    $posY = (int)$this->validateNumeric($item['position']['y'] ?? 0, -4320, 4320, 0);
                     
                     $nextBase = "[base_next_stk_{$visualIndex}]";
-                    $this->filterComplex[] = "[{$lastVisualLayer}]drawtext=fontfile='{$fontfile}':text='{$txt}':x={$posX}:y={$posY}:fontsize={$fontSize}:enable='between(t,{$start},{$end})'{$nextBase}";
+                    $this->filterComplex[] = "[{$lastVisualLayer}]drawtext=fontfile='{$fontfile}':textfile='{$escapedPath}':x={$posX}:y={$posY}:fontsize={$fontSize}:enable='between(t,{$start},{$end})'{$nextBase}";
                     $lastVisualLayer = rtrim(ltrim($nextBase, '['), ']');
                     $visualIndex++;
                 }
@@ -269,8 +348,8 @@ class FfmpegBuilder {
         $audioIndex = 0;
         foreach ($items as $item) {
             $localPath = null;
-            $start = floatval($item['start'] ?? 0);
-            $dur = floatval($item['duration'] ?? 5);
+            $start = $this->validateNumeric($item['start'] ?? 0, 0, 86400, 0);
+            $dur = $this->validateNumeric($item['duration'] ?? 5, 0.1, 86400, 5);
             
             if ($item['type'] === 'video') {
                 // Try to use video audio
@@ -284,10 +363,10 @@ class FfmpegBuilder {
 
             if ($localPath && is_file($localPath)) {
                 $inIdx = $this->addInput($localPath);
-                $vol = floatval($item['volume'] ?? 100) / 100.0;
-                $delayMs = intval($start * 1000);
+                $vol = $this->validateNumeric($item['volume'] ?? 100, 0, 200, 100) / 100.0;
+                $delayMs = (int)($start * 1000);
                 
-                $sourceStart = floatval($item['sourceStart'] ?? 0);
+                $sourceStart = $this->validateNumeric($item['sourceStart'] ?? 0, 0, 86400, 0);
                 
                 $aFilters = "atrim=start={$sourceStart}:duration={$dur},asetpts=PTS-STARTPTS,volume={$vol},adelay={$delayMs}|{$delayMs}";
                 $aOut = "[a{$audioIndex}]";

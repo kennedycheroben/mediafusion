@@ -67,7 +67,7 @@ function csrf_meta(): string {
 }
 
 /**
- * Extract CSRF token from request (POST body, X-CSRF-Token header, or X-XSRF-TOKEN header).
+ * Extract CSRF token from request (POST body, X-CSRF-Token header, X-XSRF-TOKEN header, or JSON body).
  */
 function extract_csrf_token(): string {
     $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
@@ -78,6 +78,17 @@ function extract_csrf_token(): string {
 
     if (empty($token)) {
         $token = $_POST['csrf_token'] ?? '';
+    }
+
+    // Also check JSON body for Content-Type: application/json requests
+    if (empty($token)) {
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        if (str_contains($contentType, 'application/json')) {
+            $body = json_decode(file_get_contents('php://input') ?: '{}', true);
+            if (is_array($body) && !empty($body['csrf_token'])) {
+                $token = (string)$body['csrf_token'];
+            }
+        }
     }
 
     return $token;

@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -35,6 +36,10 @@ from typing import Any, Dict, List, Optional
 
 import mysql.connector
 import requests
+
+# Add Python token crypto helper to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'python'))
+from token_crypto import decrypt_if_needed, encrypt_if_needed
 
 # NOTE: google-api-python-client integration is scaffolded; real upload requires OAuth credentials.
 try:
@@ -148,6 +153,9 @@ def get_token(user_id: int, platform: str) -> Optional[Dict[str, Any]]:
     row = cur.fetchone()
     cur.close()
     cnx.close()
+    if row:
+        row['access_token'] = decrypt_if_needed(row.get('access_token'))
+        row['refresh_token'] = decrypt_if_needed(row.get('refresh_token'))
     return row
 
 
@@ -193,11 +201,12 @@ def push_youtube(job: UploadJob, result: Dict[str, Any]) -> None:
             credentials.refresh(Request())
             cnx = db_connect()
             cur = cnx.cursor()
+            enc_token = encrypt_if_needed(credentials.token)
             cur.execute("""
                 UPDATE oauth_tokens 
                 SET access_token = %s, token_expiry = %s 
                 WHERE user_id = %s AND platform = 'youtube'
-            """, (credentials.token, credentials.expiry.strftime('%Y-%m-%d %H:%M:%S') if credentials.expiry else None, job.user_id))
+            """, (enc_token, credentials.expiry.strftime('%Y-%m-%d %H:%M:%S') if credentials.expiry else None, job.user_id))
             cur.close()
             cnx.close()
             

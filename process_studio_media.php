@@ -38,15 +38,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Helper Utilities & Escaping
 // ----------------------------------------------------
 /**
- * Safe escaping for special characters inside FFmpeg's drawtext filter arguments.
- * Ensures quotes, colons, percent signs, and backslashes do not break shell executions.
+ * Write user text to a temporary file for safe use with FFmpeg textfile= parameter.
+ * This eliminates filter graph injection by never interpolating user text into the command.
  */
-function escapeFfmpegDrawtext(string $text): string {
-    $text = str_replace('\\', '\\\\', $text);
-    $text = str_replace("'", "'\\\\''", $text);
-    $text = str_replace(':', '\\:', $text);
-    $text = str_replace('%', '\\%', $text);
-    return $text;
+function writeFfmpegTextFile(string $text): ?string {
+    if ($text === '') return null;
+    $tmpFile = tempnam(sys_get_temp_dir(), 'mf_txt_');
+    if ($tmpFile === false) return null;
+    $clean = str_replace(["\r\n", "\r"], "\n", $text);
+    if (file_put_contents($tmpFile, $clean) === false) {
+        @unlink($tmpFile);
+        return null;
+    }
+    return $tmpFile;
+}
+
+/**
+ * Validate a numeric parameter within allowed range.
+ */
+function validateFfmpegNumeric($value, float $min, float $max, float $default): float {
+    $val = filter_var($value, FILTER_VALIDATE_FLOAT);
+    if ($val === false || $val < $min || $val > $max) {
+        return $default;
+    }
+    return $val;
 }
 
 /**
@@ -291,10 +306,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Video conform stream filter
         $videoFilters = "[0:v]scale={$targetW}:{$targetH}:force_original_aspect_ratio=decrease,pad={$targetW}:{$targetH}:(ow-iw)/2:(oh-ih)/2";
 
-        // Playback speed
+        // Playback speed (validated range)
         if (is_array($timelineData) && isset($timelineData['speed'])) {
-            $speed = floatval($timelineData['speed']);
-            if ($speed <= 0) $speed = 1.0;
+            $speed = validateFfmpegNumeric($timelineData['speed'], 0.1, 10.0, 1.0);
             if ($speed != 1.0) {
                 $ptsFactor = 1.0 / $speed;
                 $videoFilters .= ",setpts={$ptsFactor}*PTS";
@@ -318,7 +332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $videoFilters .= ",eq=brightness={$normB}:contrast={$normC}:saturation={$normS}";
         }
 
-        // Process text clips
+        // Process text clips using textfile= for injection safety
         $fontfile = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
         if (is_array($timelineData) && isset($timelineData['texts']) && is_array($timelineData['texts'])) {
             foreach ($timelineData['texts'] as $textClip) {
@@ -327,41 +341,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $txt = trim((string)($textClip['text'] ?? ''));
                 if ($txt === '') continue;
                 
-                $escapedText = escapeFfmpegDrawtext($txt);
-                $start = floatval($textClip['start'] ?? 0);
-                $duration = floatval($textClip['duration'] ?? ($textClip['end'] - $textClip['start']));
-                $end = $start + $duration;
-                $x = floatval($textClip['x'] ?? 50);
-                $y = floatval($textClip['y'] ?? 50);
-                $size = intval($textClip['size'] ?? 24);
-                $color = trim((string)($textClip['color'] ?? 'white'));
+                // SECURITY: Write text to temp file for textfile= (prevents filter injection)
+                $textFile = writeFfmpegTextFile($txt);
+                if ($textFile === null) continue;
+                $escapedPath = str_replace("'", "'\\''", $textFile);
                 
-                $rotation = floatval($textClip['rotation'] ?? 0);
+                $start = validateFfmpegNumeric($textClip['start'] ?? 0, 0, 86400, 0);
+                $duration = validateFfmpegNumeric($textClip['duration'] ?? ($textClip['end'] - $textClip['start']), 0.1, 86400, 5);
+                $end = $start + $duration;
+                $x = validateFfmpegNumeric($textClip['x'] ?? 50, 0, 100, 50);
+                $y = validateFfmpegNumeric($textClip['y'] ?? 50, 0, 100, 50);
+                $size = (int)validateFfmpegNumeric($textClip['size'] ?? 24, 6, 500, 24);
+                $color = trim((string)($textClip['color'] ?? 'white'));
+                if (!preg_match('/^#[a-fA-F0-9]{3,8}$|^[a-zA-Z0-9_]+$/', $color)) $color = 'white';
+                
+                $rotation = validateFfmpegNumeric($textClip['rotation'] ?? 0, -360, 360, 0);
                 $rotStr = "";
                 if ($rotation !== 0.0) {
                     $rad = deg2rad($rotation);
                     $rotStr = ":rotation={$rad}";
                 }
                 
-                $videoFilters .= ",drawtext=fontfile='{$fontfile}':text='{$escapedText}':x=(w*{$x}/100)-text_w/2:y=(h*{$y}/100)-text_h/2:fontsize={$size}:fontcolor='{$color}':enable='between(t,{$start},{$end})'{$rotStr}:shadowx=2:shadowy=2:shadowcolor=black@0.9:box=1:boxcolor=black@0.35:boxborderw=8";
+                $videoFilters .= ",drawtext=fontfile='{$fontfile}':textfile='{$escapedPath}':x=(w*{$x}/100)-text_w/2:y=(h*{$y}/100)-text_h/2:fontsize={$size}:fontcolor='{$color}':enable='between(t,{$start},{$end})'{$rotStr}:shadowx=2:shadowy=2:shadowcolor=black@0.9:box=1:boxcolor=black@0.35:boxborderw=8";
             }
         }
 
-        // Process sticker clips
+        // Process sticker clips using textfile= for injection safety
         if (is_array($timelineData) && isset($timelineData['stickers']) && is_array($timelineData['stickers'])) {
             foreach ($timelineData['stickers'] as $stkClip) {
                 $emoji = trim((string)($stkClip['emoji'] ?? ''));
                 if ($emoji === '') continue;
                 
-                $escapedEmoji = escapeFfmpegDrawtext($emoji);
-                $start = floatval($stkClip['start'] ?? 0);
-                $duration = floatval($stkClip['duration'] ?? ($stkClip['end'] - $stkClip['start']));
-                $end = $start + $duration;
-                $x = floatval($stkClip['x'] ?? 50);
-                $y = floatval($stkClip['y'] ?? 50);
-                $size = intval($stkClip['size'] ?? 40);
+                // SECURITY: Write text to temp file for textfile= (prevents filter injection)
+                $textFile = writeFfmpegTextFile($emoji);
+                if ($textFile === null) continue;
+                $escapedPath = str_replace("'", "'\\''", $textFile);
                 
-                $rotation = floatval($stkClip['rotation'] ?? 0);
+                $start = validateFfmpegNumeric($stkClip['start'] ?? 0, 0, 86400, 0);
+                $duration = validateFfmpegNumeric($stkClip['duration'] ?? ($stkClip['end'] - $stkClip['start']), 0.1, 86400, 5);
+                $end = $start + $duration;
+                $x = validateFfmpegNumeric($stkClip['x'] ?? 50, 0, 100, 50);
+                $y = validateFfmpegNumeric($stkClip['y'] ?? 50, 0, 100, 50);
+                $size = (int)validateFfmpegNumeric($stkClip['size'] ?? 40, 6, 500, 40);
+                
+                $rotation = validateFfmpegNumeric($stkClip['rotation'] ?? 0, -360, 360, 0);
                 $rotStr = "";
                 if ($rotation !== 0.0) {
                     $rad = deg2rad($rotation);
@@ -371,7 +394,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $emojiFont = '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf';
                 $activeFont = is_file($emojiFont) ? $emojiFont : $fontfile;
                 
-                $videoFilters .= ",drawtext=fontfile='{$activeFont}':text='{$escapedEmoji}':x=(w*{$x}/100)-text_w/2:y=(h*{$y}/100)-text_h/2:fontsize={$size}:enable='between(t,{$start},{$end})'{$rotStr}";
+                $videoFilters .= ",drawtext=fontfile='{$activeFont}':textfile='{$escapedPath}':x=(w*{$x}/100)-text_w/2:y=(h*{$y}/100)-text_h/2:fontsize={$size}:enable='between(t,{$start},{$end})'{$rotStr}";
             }
         }
 
@@ -384,12 +407,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($hasAudio) {
             $volDb = 1.0;
             if (is_array($timelineData) && isset($timelineData['volume'])) {
-                $volDb = floatval($timelineData['volume']) / 100.0;
+                $volDb = validateFfmpegNumeric($timelineData['volume'], 0, 200, 100) / 100.0;
             }
             $mainAudioFilters = "volume={$volDb}";
             
             if (is_array($timelineData) && isset($timelineData['speed'])) {
-                $speed = floatval($timelineData['speed']);
+                $speed = validateFfmpegNumeric($timelineData['speed'], 0.1, 10.0, 1.0);
                 if ($speed > 0 && $speed != 1.0) {
                     $mainAudioFilters .= ",atempo={$speed}";
                 }
@@ -411,9 +434,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (is_file($clipPath)) {
                     $audioInputArgs[] = "-i " . escapeshellarg($clipPath);
                     
-                    $clipStart = floatval($clip['start'] ?? 0);
-                    $clipDuration = floatval($clip['duration'] ?? 2);
-                    $clipVol = floatval(($clip['volume'] ?? 100)) / 100.0;
+                    $clipStart = validateFfmpegNumeric($clip['start'] ?? 0, 0, 86400, 0);
+                    $clipDuration = validateFfmpegNumeric($clip['duration'] ?? 2, 0.1, 86400, 2);
+                    $clipVol = validateFfmpegNumeric($clip['volume'] ?? 100, 0, 200, 100) / 100.0;
                     $delayMs = intval($clipStart * 1000);
                     
                     $filterComplex[] = "[{$inputIndex}:a]atrim=0:{$clipDuration},asetpts=PTS-STARTPTS,volume={$clipVol},adelay={$delayMs}|{$delayMs}[aud{$inputIndex}]";
@@ -559,11 +582,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $imageFilters[] = "eq=brightness={$normB}:contrast={$normC}";
         }
 
-        // 3. Center burning captions via drawtext
+        // 3. Center burning captions via drawtext using textfile= for safety
         if ($caption !== '') {
-            $escapedCap = escapeFfmpegDrawtext($caption);
-            // WhatsApp style: bottom-center, white bold text, dark semi-transparent box, subtle shadow
-            $imageFilters[] = "drawtext=fontfile='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf':text='{$escapedCap}':x=(w-text_w)/2:y=h-text_h-48:fontsize=40:fontcolor=white:shadowx=2:shadowy=2:shadowcolor=black@0.9:box=1:boxcolor=black@0.58:boxborderw=18";
+            $captionFile = writeFfmpegTextFile($caption);
+            if ($captionFile !== null) {
+                $escapedCapPath = str_replace("'", "'\\''", $captionFile);
+                $imageFilters[] = "drawtext=fontfile='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf':textfile='{$escapedCapPath}':x=(w-text_w)/2:y=h-text_h-48:fontsize=40:fontcolor=white:shadowx=2:shadowy=2:shadowcolor=black@0.9:box=1:boxcolor=black@0.58:boxborderw=18";
+            }
         }
 
         $filterStr = !empty($imageFilters) ? "-vf " . escapeshellarg(implode(',', $imageFilters)) : '';

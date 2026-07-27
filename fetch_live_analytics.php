@@ -43,6 +43,7 @@ if ($userId === null) {
 try {
     require_once __DIR__ . '/backend/db.php';
 require_once __DIR__ . '/backend/rate_limit.php';
+require_once __DIR__ . '/backend/token_crypto.php';
 
 rateLimitApi();
 } catch (Exception $e) {
@@ -121,8 +122,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch_post') {
     $stmtTokens = $pdo->prepare("SELECT platform, access_token FROM oauth_tokens WHERE user_id = ?");
     $stmtTokens->execute([$userId]);
     $userTokens = [];
+    $crypto = getTokenCrypto();
     foreach ($stmtTokens->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $userTokens[$row['platform']] = $row['access_token'];
+        $userTokens[$row['platform']] = $crypto->decryptIfNeeded($row['access_token']);
     }
 
     $postMetrics = [];
@@ -221,8 +223,9 @@ if ($isAjax || isset($_GET['action']) && $_GET['action'] === 'fetch') {
     $integrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $tokens = [];
+    $crypto = getTokenCrypto();
     foreach ($integrations as $row) {
-        $tokens[$row['platform']] = $row['access_token'];
+        $tokens[$row['platform']] = $crypto->decryptIfNeeded($row['access_token']);
     }
 
     $results = [];

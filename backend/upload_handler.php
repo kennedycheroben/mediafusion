@@ -12,9 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $tempDir = __DIR__ . '/../uploads/temp/';
 $finalDir = __DIR__ . '/../uploads/videos/';
-
-if (!is_dir($tempDir))  @mkdir($tempDir, 0777, true);
-if (!is_dir($finalDir)) @mkdir($finalDir, 0777, true);
+if (!is_dir($tempDir))  @mkdir($tempDir, 0755, true);
+                                        
+                                        if (!is_dir($finalDir)) @mkdir($finalDir, 0755, true);
 
 // Resumable.js GET request (check if chunk exists)
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {

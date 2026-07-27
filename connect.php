@@ -51,12 +51,6 @@ if ($action === 'disconnect' && $platform !== '' && $_SERVER['REQUEST_METHOD'] =
             $stmt = $pdo->prepare("DELETE FROM oauth_tokens WHERE user_id = ? AND platform = ?");
             $stmt->execute([$userId, $platform]);
             
-            // Handle Meta cascading disconnects
-            if ($platform === 'meta') {
-                $stmt = $pdo->prepare("DELETE FROM oauth_tokens WHERE user_id = ? AND platform IN ('facebook', 'instagram', 'meta')");
-                $stmt->execute([$userId]);
-            }
-            
             log_security_event('social_disconnected', "platform={$platform}", $userId);
             $safePlatform = htmlspecialchars(ucfirst($platform), ENT_QUOTES, 'UTF-8');
             $message = "<div class='alert alert-success' style='background: rgba(0, 255, 102, 0.08); border: 1px solid var(--neon-green); color: var(--neon-green);'>Successfully disconnected {$safePlatform} account.</div>";
@@ -104,9 +98,15 @@ if ($action === 'start' && $platform !== '') {
         exit;
     }
 
-    if ($platform === 'meta') {
-        // Redirect to specialized Meta OAuth initiator
-        header('Location: connect_meta.php');
+    if ($platform === 'facebook') {
+        // Redirect to Meta OAuth initiator with facebook scope set
+        header('Location: connect_meta.php?platform=facebook');
+        exit;
+    }
+
+    if ($platform === 'instagram') {
+        // Redirect to Meta OAuth initiator with instagram scope set
+        header('Location: connect_meta.php?platform=instagram');
         exit;
     }
 
@@ -201,16 +201,16 @@ if ($action === 'start' && $platform !== '') {
                         <h3 class="mb-3">Facebook</h3>
                         <p class="text-secondary mb-4">Post videos directly to your Facebook Page.</p>
                     </div>
-                    <?php if (in_array('meta', $connectedPlatforms) || in_array('facebook', $connectedPlatforms)): ?>
+                    <?php if (in_array('facebook', $connectedPlatforms)): ?>
                         <div>
                             <div class="badge bg-success border-0 mb-3 px-3 py-2 text-dark fw-bold w-100" style="background-color: var(--neon-green) !important;"><i class="fa-solid fa-circle-check me-1"></i> Connected</div>
-                            <form method="POST" action="connect.php?action=disconnect&amp;platform=meta" onsubmit="return confirm('Disconnect Facebook account?');">
+                            <form method="POST" action="connect.php?action=disconnect&amp;platform=facebook" onsubmit="return confirm('Disconnect Facebook account?');">
                                 <?= csrf_field() ?>
                                 <button type="submit" class="btn btn-outline-danger btn-sm w-100 py-2 fw-bold text-uppercase">Disconnect</button>
                             </form>
                         </div>
                     <?php else: ?>
-                        <a href="connect_meta.php" class="btn-magnetic w-100" style="border-color: var(--meta-blue);">
+                        <a href="connect.php?action=start&amp;platform=facebook" class="btn-magnetic w-100" style="border-color: var(--meta-blue);">
                             Connect <i class="fa-solid fa-link ms-2"></i>
                         </a>
                     <?php endif; ?>
@@ -225,16 +225,16 @@ if ($action === 'start' && $platform !== '') {
                         <h3 class="mb-3">Instagram</h3>
                         <p class="text-secondary mb-4">Post videos directly to your Instagram Business account.</p>
                     </div>
-                    <?php if (in_array('meta', $connectedPlatforms) || in_array('instagram', $connectedPlatforms)): ?>
+                    <?php if (in_array('instagram', $connectedPlatforms)): ?>
                         <div>
                             <div class="badge bg-success border-0 mb-3 px-3 py-2 text-dark fw-bold w-100" style="background-color: var(--neon-green) !important;"><i class="fa-solid fa-circle-check me-1"></i> Connected</div>
-                            <form method="POST" action="connect.php?action=disconnect&amp;platform=meta" onsubmit="return confirm('Disconnect Instagram account?');">
+                            <form method="POST" action="connect.php?action=disconnect&amp;platform=instagram" onsubmit="return confirm('Disconnect Instagram account?');">
                                 <?= csrf_field() ?>
                                 <button type="submit" class="btn btn-outline-danger btn-sm w-100 py-2 fw-bold text-uppercase">Disconnect</button>
                             </form>
                         </div>
                     <?php else: ?>
-                        <a href="connect_meta.php" class="btn-magnetic w-100" style="border-color: #e1306c;">
+                        <a href="connect.php?action=start&amp;platform=instagram" class="btn-magnetic w-100" style="border-color: #e1306c;">
                             Connect <i class="fa-solid fa-link ms-2"></i>
                         </a>
                     <?php endif; ?>

@@ -64,8 +64,8 @@ if ($method === 'POST') {
         $file = $_FILES['logo_file'];
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         
-        if (!in_array($ext, ['png', 'jpg', 'jpeg', 'svg', 'webp'], true)) {
-            echo json_encode(['success' => false, 'message' => 'Invalid logo file format. Supported: PNG, JPG, JPEG, SVG, WEBP.']);
+        if (!in_array($ext, ['png', 'jpg', 'jpeg', 'webp'], true)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid logo file format. Supported: PNG, JPG, JPEG, WEBP.']);
             exit;
         }
 

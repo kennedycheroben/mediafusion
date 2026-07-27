@@ -8,6 +8,7 @@ import os
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
+from token_crypto import decrypt_if_needed, encrypt_if_needed
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -53,11 +54,12 @@ def update_db_token(user_id, platform, access_token, expiry):
     try:
         cursor = conn.cursor()
         expiry_str = expiry.strftime('%Y-%m-%d %H:%M:%S') if expiry else None
+        enc_token = encrypt_if_needed(access_token)
         cursor.execute("""
             UPDATE oauth_tokens 
             SET access_token = %s, token_expiry = %s 
             WHERE user_id = %s AND platform = %s
-        """, (access_token, expiry_str, user_id, platform))
+        """, (enc_token, expiry_str, user_id, platform))
         conn.commit()
         logging.info(f"Successfully refreshed and saved new access token for {platform}")
     except Exception as e:
@@ -370,9 +372,14 @@ def process_upload(upload_id):
 
         logging.info(f"Retrieved metadata: {title} | Targets: {platforms}")
 
-        # Fetch Tokens (including refresh token)
+        # Fetch Tokens (including refresh token) and decrypt
         cursor.execute("SELECT platform, access_token, refresh_token FROM oauth_tokens WHERE user_id = %s", (user_id,))
-        tokens = {row['platform']: {'access_token': row['access_token'], 'refresh_token': row['refresh_token']} for row in cursor.fetchall()}
+        tokens = {}
+        for row in cursor.fetchall():
+            tokens[row['platform']] = {
+                'access_token': decrypt_if_needed(row['access_token']),
+                'refresh_token': decrypt_if_needed(row['refresh_token']),
+            }
 
         threads = []
         results = {}

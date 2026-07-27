@@ -186,6 +186,7 @@ $smtpLogs       = [];
 $sandboxLink    = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_csrf();
     rateLimitPolicy('auth_password_reset');
 
     $email = trim((string)($_POST['email'] ?? ''));

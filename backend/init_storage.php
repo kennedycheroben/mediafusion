@@ -20,11 +20,11 @@ function initStorageDirectories(): array
     $created = [];
     foreach ($dirs as $dir) {
         if (!is_dir($dir)) {
-            if (@mkdir($dir, 0777, true)) {
+            if (@mkdir($dir, 0755, true)) {
                 $created[] = $dir;
             }
         } else {
-            @chmod($dir, 0777);
+            @chmod($dir, 0755);
         }
     }
     return $created;

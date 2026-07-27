@@ -10,6 +10,13 @@ if (!isset($_SESSION['user_id'])) {
 $userId = (int)$_SESSION['user_id'];
 rateLimitPolicy('oauth_callback');
 
+// Resolve the platform this OAuth flow was initiated for.
+// connect_meta.php sets 'meta_pending_platform' before redirecting to Meta.
+$metaPlatform = $_SESSION['meta_pending_platform'] ?? 'facebook';
+if (!in_array($metaPlatform, ['facebook', 'instagram'], true)) {
+    $metaPlatform = 'facebook';
+}
+
 // Retrieve CSRF state and authorization code from request
 $state = $_GET['state'] ?? '';
 $code = $_GET['code'] ?? '';
@@ -70,10 +77,17 @@ try {
         
         $userId = $_SESSION['user_id'] ?? 1;
 
-        // Upsert to oauth_tokens table
+        require_once __DIR__ . '/backend/token_crypto.php';
+        $crypto = getTokenCrypto();
+        $encAccess = $crypto->encrypt($accessToken);
+        // Meta long-lived tokens: store the access_token as the exchange token for refresh.
+        // The original code stored accessToken as refresh_token (bug); we encrypt it properly.
+        $encRefresh = $crypto->encrypt($accessToken);
+
+        // Upsert to oauth_tokens table under the specific platform ('facebook' or 'instagram')
         $stmt = $pdo->prepare("
             INSERT INTO oauth_tokens (user_id, platform, access_token, refresh_token, token_expiry, token_status)
-            VALUES (:user_id, 'meta', :access_token, :refresh_token, :token_expiry, 'valid')
+            VALUES (:user_id, :platform, :access_token, :refresh_token, :token_expiry, 'valid')
             ON DUPLICATE KEY UPDATE 
                 access_token = VALUES(access_token),
                 refresh_token = VALUES(refresh_token),
@@ -84,17 +98,19 @@ try {
         
         $stmt->execute([
             ':user_id'      => $userId,
-            ':access_token' => (string)$accessToken,
-            ':refresh_token'=> (string)$accessToken,
+            ':platform'     => $metaPlatform,
+            ':access_token' => $encAccess,
+            ':refresh_token'=> $encRefresh,
             ':token_expiry' => $tokenExpiry
         ]);
 
         // Cleanup OAuth session states
         unset($_SESSION['meta_oauth_state']);
+        unset($_SESSION['meta_pending_platform']);
         unset($_SESSION['oauth_pending_platform']);
 
-        log_security_event('oauth_success', 'platform=meta', $userId);
-        header("Location: connect.php?status=success&platform=meta");
+        log_security_event('oauth_success', "platform={$metaPlatform}", $userId);
+        header("Location: connect.php?status=success&platform={$metaPlatform}");
         exit;
     } else {
         $errorMsg = $tokenData['error']['message'] ?? ($tokenData['error'] ?? 'token_exchange_failed');

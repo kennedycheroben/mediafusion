@@ -14,12 +14,20 @@ require_csrf();
 $action   = $_POST['action'] ?? '';
 $username = trim($_POST['username'] ?? '');
 $password = $_POST['password'] ?? '';
+$passwordConfirm = $_POST['password_confirm'] ?? '';
 
 $redirectBack = ($action === 'register') ? '../register.php' : '../login.php';
 
 if (empty($username) || empty($password)) {
     $_SESSION['auth_error'] = "Username and password are required.";
     header("Location: $redirectBack");
+    exit;
+}
+
+// Validate password confirmation for registration
+if ($action === 'register' && $passwordConfirm !== '' && $password !== $passwordConfirm) {
+    $_SESSION['auth_error'] = "Passwords do not match.";
+    header("Location: ../register.php");
     exit;
 }
 
