@@ -1,6 +1,6 @@
 <?php
 /**
- * Unify Social Hub - Standalone AJAX Live Analytics Dispatcher
+ * MediaFusion - Standalone AJAX Live Analytics Dispatcher
  * 
  * BACKEND ARCHITECTURE DIRECTIVES:
  * 1. Cache-Bypass Execution: Completely bypasses database or background cron caching layers.
@@ -225,7 +225,7 @@ if ($isAjax || isset($_GET['action']) && $_GET['action'] === 'fetch') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Analytics Dispatcher — Unify Social Hub</title>
+    <title>Live Analytics Dispatcher — MediaFusion</title>
     
     <!-- CSS Library Imports -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">

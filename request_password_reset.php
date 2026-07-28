@@ -1,6 +1,6 @@
 <?php
 /**
- * Unify Social Hub - SMTP-Driven Secure Password Reset Request
+ * MediaFusion - SMTP-Driven Secure Password Reset Request
  * 
  * BACKEND SECURITY DESIGN:
  * 1. Self-Healing Schema: Automatically structures 'users' email column and 'password_resets' table.
@@ -92,7 +92,7 @@ class CyberpunkSMTPClient {
         fwrite($socket, $cmd . "\r\n");
     }
 
-    public function send(string $to, string $subject, string $body, string $fromName = 'Unify Social Hub'): bool {
+    public function send(string $to, string $subject, string $body, string $fromName = 'MediaFusion'): bool {
         $prefix = ($this->encryption === 'ssl') ? 'ssl://' : '';
         $socket = @fsockopen($prefix . $this->host, $this->port, $errno, $errstr, 10);
         
@@ -229,11 +229,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $smtpEncryption = SMTP_ENCRYPTION;
             
             // Build visual HTML body
-            $subject = "Reset Your Unify Social Hub Password";
+            $subject = "Reset Your MediaFusion Password";
             $emailBody = "
                 <div style='background-color:#050505; color:#ffffff; font-family:sans-serif; padding:2rem; border-radius:12px; max-width:600px; margin:0 auto; border:1px solid #ff00ff;'>
                     <h2 style='color:#00f3ff; text-transform:uppercase;'>Password Reset Request</h2>
-                    <p style='color:#a0a0b0;'>You have requested a secure password reset for Unify Social Hub. Click the link below to verify credentials and update your password. This link expires in 1 hour.</p>
+                    <p style='color:#a0a0b0;'>You have requested a secure password reset for MediaFusion. Click the link below to verify credentials and update your password. This link expires in 1 hour.</p>
                     <div style='margin:2rem 0; text-align:center;'>
                         <a href='{$resetLink}' style='background-color:#ff00ff; color:#ffffff; padding:12px 24px; text-decoration:none; font-weight:bold; border-radius:4px; box-shadow:0 0 15px #ff00ff;'>Reset Password Now</a>
                     </div>
@@ -270,7 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Request Password Reset — Unify Social Hub</title>
+    <title>Request Password Reset — MediaFusion</title>
     
     <!-- Bootstrap & Fonts -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">

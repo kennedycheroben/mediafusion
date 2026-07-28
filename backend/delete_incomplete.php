@@ -35,7 +35,7 @@ try {
         exit;
     }
 
-    $tempPath = $upload['temp_target_path']; // e.g. /opt/lampp/htdocs/UnifySocialHub/uploads/temp/resumableIdentifier
+    $tempPath = $upload['temp_target_path']; // e.g. /opt/lampp/htdocs/MediaFusion/uploads/temp/resumableIdentifier
     $totalChunks = (int)$upload['total_chunks'];
 
     // Clean up temporary chunks on disk

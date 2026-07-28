@@ -1,6 +1,6 @@
 <?php
 /**
- * Unify Social Hub - Operator Profile Management
+ * MediaFusion - Operator Profile Management
  * 
  * CORE SECURITY & IDENTITY FEATURES:
  * 1. Self-Healing Schema Check: Assures email and avatar_path exist natively on the user structure.
@@ -114,7 +114,7 @@ $joinedDate  = isset($user['created_at']) ? date('M j, Y', strtotime($user['crea
 $profilePic  = $user['profile_pic'] ?? $user['avatar_path'] ?? '';
 $hasCustomAvatar = ($profilePic !== '' && is_file(__DIR__ . '/' . $profilePic));
 
-$pageTitle  = 'Profile - Unify Social Hub';
+$pageTitle  = 'Profile - MediaFusion';
 $activePage = 'profile';
 include 'header.php';
 ?>

@@ -1,6 +1,6 @@
 <?php
 /**
- * Unify Social Hub - Core Configuration
+ * MediaFusion - Core Configuration
  * 
  * CORE ARCHITECTURAL SECURITY:
  * 1. Env Loader: Lightweight pure-PHP environment loader registers process-level variables.
@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 /**
  * Minimal ".env simulation" loader.
- * - Optional file: /opt/lampp/htdocs/UnifySocialHub/.env
+ * - Optional file: /opt/lampp/htdocs/mediafusion/.env
  * - Never prints secrets; only sets process env via putenv().
  */
 function unify_load_env_file(string $path): void {
@@ -61,7 +61,7 @@ function unify_detect_redirect_uri(): string {
     }
     // Derive from current request (http vs https matters for Meta).
     if (!isset($_SERVER['HTTP_HOST'], $_SERVER['SCRIPT_NAME'])) {
-        return 'http://localhost/UnifySocialHub/connect.php';
+        return 'http://localhost/mediafusion/connect.php';
     }
     $scheme = unify_is_https() ? 'https' : 'http';
     $host = (string)$_SERVER['HTTP_HOST'];
@@ -76,7 +76,7 @@ function unify_detect_redirect_uri(): string {
  */
 function unify_detect_script_uri(string $script = 'callback.php'): string {
     if (!isset($_SERVER['HTTP_HOST'], $_SERVER['SCRIPT_NAME'])) {
-        return 'http://localhost/UnifySocialHub/' . ltrim($script, '/');
+        return 'http://localhost/mediafusion/' . ltrim($script, '/');
     }
     $scheme = unify_is_https() ? 'https' : 'http';
     $host = (string)$_SERVER['HTTP_HOST'];
@@ -86,7 +86,7 @@ function unify_detect_script_uri(string $script = 'callback.php'): string {
 }
 
 // ---- Production overrides: when running on the live domain, prefer explicit production credentials
-$productionHost = 'unifysocialhub.great-site.net';
+$productionHost = 'fusionmedia.top';
 $hostLower = strtolower($_SERVER['HTTP_HOST'] ?? '');
 if (strpos($hostLower, $productionHost) !== false || getenv('UNIFY_FORCE_PRODUCTION') === '1') {
     // Only set these if they are not already provided by environment (.env or server)

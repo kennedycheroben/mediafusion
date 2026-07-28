@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/config.php';
 
-$pageTitle = 'Privacy Policy — Unify Social Hub';
+$pageTitle = 'Privacy Policy — MediaFusion';
 $activePage = 'privacy';
 include __DIR__ . '/header.php';
 ?>
@@ -20,14 +20,14 @@ include __DIR__ . '/header.php';
                     <div class="content-section mb-4">
                         <h3 class="h5 text-gradient-magenta mb-3"><i class="fa-solid fa-user-secret me-2"></i>Introduction</h3>
                         <p class="text-secondary">
-                            At <strong>UnifySocialHub</strong>, we prioritize the protection and confidentiality of your personal and social platform data. This Privacy Policy details how our media distribution application accesses, manages, and secures data when you link your external accounts (including YouTube, TikTok, and Instagram).
+                            At <strong>MediaFusion</strong>, we prioritize the protection and confidentiality of your personal and social platform data. This Privacy Policy details how our media distribution application accesses, manages, and secures data when you link your external accounts (including YouTube, TikTok, and Instagram).
                         </p>
                     </div>
 
                     <div class="content-section mb-4">
                         <h3 class="h5 text-gradient-magenta mb-3"><i class="fa-solid fa-key me-2"></i>Token Collection & Usage</h3>
                         <p class="text-secondary">
-                            UnifySocialHub functions strictly as a pipeline utility for authorized distribution management. We securely collect and store account access tokens solely to:
+                            MediaFusion functions strictly as a pipeline utility for authorized distribution management. We securely collect and store account access tokens solely to:
                         </p>
                         <ul class="text-secondary list-unstyled ps-3">
                             <li class="mb-2"><i class="fa-solid fa-chart-line text-cyan me-2"></i> List your existing channel statistics.</li>
