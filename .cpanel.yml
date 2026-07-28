@@ -1,0 +1,10 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/xqtrqexj/public_html/
+    - /bin/mkdir -p "$DEPLOYPATH/uploads"
+    - /bin/mkdir -p "$DEPLOYPATH/uploads/temp"
+    - /bin/mkdir -p "$DEPLOYPATH/uploads/processed"
+    - /bin/mkdir -p "$DEPLOYPATH/uploads/studio"
+    - /bin/mkdir -p "$DEPLOYPATH/logs"
+    - /bin/rsync -a --exclude='.git/' --exclude='.github/' --exclude='.env' --exclude='.env.*' --exclude='node_modules/' --exclude='tests/' --exclude='docs/' --exclude='logs/' --exclude='backups/' --exclude='scratch/' --exclude='uploads/temp/' --exclude='uploads/processed/' --exclude='uploads/studio/' --exclude='uploads/python_upload.log' --exclude='vendor/' ./ "$DEPLOYPATH"
