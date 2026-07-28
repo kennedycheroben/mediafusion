@@ -1,5 +1,5 @@
 <?php
-$pageTitle  = 'Home - MediaFusion';
+$pageTitle  = 'Home - Unify Social Hub';
 $activePage = 'home';
 $extraHead  = '
 <meta name="description" content="High-performance Social Media Distribution System for YouTube, TikTok, and Meta.">

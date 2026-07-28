@@ -1,6 +1,6 @@
 <?php
 /**
- * MediaFusion - Mission Control Dashboard
+ * Unify Social Hub - Mission Control Dashboard
  * 
  * CORE ENGAGEMENT & ROUTING FEATURES:
  * 1. Live Consolidated Analytics: Renders asynchronous metrics panels for Likes, Comments, and Views.
@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-$pageTitle  = 'Dashboard — MediaFusion';
+$pageTitle  = 'Dashboard — Unify Social Hub';
 $activePage = 'dashboard';
 $extraHead = '
 <style>

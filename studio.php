@@ -1,6 +1,6 @@
 <?php
 /**
- * MediaFusion - Media Studio & Distribution Dashboard
+ * Unify Social Hub - Media Studio & Distribution Dashboard
  * 
  * CORE ARCHITECTURAL FEATURES:
  * 1. Dual Mode Upload System: Direct Upload vs. Advanced Caption & Edit Studio.
@@ -12,7 +12,7 @@
 
 declare(strict_types=1);
 
-$pageTitle  = 'Studio — MediaFusion';
+$pageTitle  = 'Studio — Unify Social Hub';
 $activePage = 'studio';
 $extraHead  = '
 <script src="https://cdnjs.cloudflare.com/ajax/libs/resumable.js/1.1.0/resumable.min.js"></script>

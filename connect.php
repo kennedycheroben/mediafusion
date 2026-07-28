@@ -3,7 +3,7 @@ session_start();
 require_once __DIR__ . '/config.php';
 
 // Shared header.php enforces auth for non-public pages.
-$pageTitle  = 'Integration Vault — MediaFusion';
+$pageTitle  = 'Integration Vault — Unify Social Hub';
 $activePage = 'vault';
 include __DIR__ . '/header.php';
 

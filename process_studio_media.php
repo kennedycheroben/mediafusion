@@ -1,6 +1,6 @@
 <?php
 /**
- * MediaFusion - Standalone Media Processor & Center Caption Studio
+ * Unify Social Hub - Standalone Media Processor & Center Caption Studio
  * 
  * CORE FEATURES:
  * 1. Isolated REST/AJAX Controller: Decides processing action and outputs standardized JSON.
@@ -303,7 +303,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Caption Studio & Processing Center — MediaFusion</title>
+    <title>Media Caption Studio & Processing Center — Unify Social Hub</title>
     
     <!-- CSS Library Setup -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">

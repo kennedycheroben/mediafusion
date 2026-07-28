@@ -4,7 +4,7 @@ if (isset($_SESSION['user_id'])) { header("Location: history.php"); exit; }
 $error = $_SESSION['auth_error'] ?? '';
 unset($_SESSION['auth_error']);
 
-$pageTitle  = 'Register — MediaFusion';
+$pageTitle  = 'Register — Unify Social Hub';
 $activePage = 'auth';
 include __DIR__ . '/header.php';
 ?>

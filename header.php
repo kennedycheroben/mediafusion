@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * header.php — Central layout header for MediaFusion.
+ * header.php — Central layout header for Unify Social Hub.
  * - Provides HTML boilerplate, Bootstrap 5.3, FontAwesome 6.x, favicon, and global navbar.
  * - CRITICAL: Uses <link rel="stylesheet" href="assets/css/style.css">
  * - Access control: redirects unauthenticated users to login.php, except on login/register pages.
@@ -26,7 +26,7 @@ if (!$isLoggedIn && !in_array($currentFile, $publicPages, true)) {
     exit;
 }
 
-if (!isset($pageTitle)) $pageTitle = 'MediaFusion';
+if (!isset($pageTitle)) $pageTitle = 'Unify Social Hub';
 if (!isset($activePage)) $activePage = '';
 
 ?>
@@ -37,7 +37,7 @@ if (!isset($activePage)) $activePage = '';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars((string)$pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
 
-    <meta name="description" content="MediaFusion — High-performance multi-platform video distribution engine.">
+    <meta name="description" content="Unify Social Hub — High-performance multi-platform video distribution engine.">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">

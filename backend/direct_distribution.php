@@ -1,6 +1,6 @@
 <?php
 /**
- * MediaFusion - Direct Distribution Handler for Edited Media Studio
+ * Unify Social Hub - Direct Distribution Handler for Edited Media Studio
  * 
  * SECURITY & ARCHITECTURAL SAFEGUARDS:
  * 1. Session Verification: Ensures only authorized operators can launch transmissions.
@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // 3. Strict LFI & Path Traversal Verification
-    // Resolve absolute path and verify it stays inside htdocs/MediaFusion/uploads/processed/
+    // Resolve absolute path and verify it stays inside htdocs/UnifySocialHub/uploads/processed/
     $baseProcessedDir = realpath(__DIR__ . '/../uploads/processed');
     $absoluteFilePath = realpath(__DIR__ . '/../' . $rawFilePath);
 

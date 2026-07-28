@@ -1,6 +1,6 @@
 <?php
 /**
- * MediaFusion - Standalone Local Profile Asset Copier & Social Sync Engine
+ * Unify Social Hub - Standalone Local Profile Asset Copier & Social Sync Engine
  * 
  * CORE FEATURES:
  * 1. Self-Healing Schema: Automatically alters 'users' table to append 'avatar_path' if missing.
@@ -140,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
             curl_setopt($ch, CURLOPT_TIMEOUT, 12);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-            curl_setopt($ch, CURLOPT_USERAGENT, 'MediaFusion - Sync Engine');
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Unify Social Hub - Sync Engine');
             
             $binaryData = curl_exec($ch);
             $httpCode   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -227,7 +227,7 @@ $hasCustomAvatar = ($avatarPath !== '' && is_file(__DIR__ . '/' . $avatarPath));
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Social Sync Engine & Avatar Manager — MediaFusion</title>
+    <title>Social Sync Engine & Avatar Manager — Unify Social Hub</title>
     
     <!-- CSS Library Imports -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">

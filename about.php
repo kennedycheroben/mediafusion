@@ -4,11 +4,11 @@ declare(strict_types=1);
 /**
  * about.php — The "About Us" and Platform Tutorial Guide page.
  * - Integrates with global header.php and includes/footer.php.
- * - Explains what MediaFusion does and how to use it.
+ * - Explains what Unify Social Hub does and how to use it.
  * - Features a high-fidelity interactive Canvas-driven cyberpunk tutorial player.
  */
 
-$pageTitle  = 'About Us - MediaFusion';
+$pageTitle  = 'About Us - Unify Social Hub';
 $activePage = 'about';
 
 include 'header.php';
@@ -22,7 +22,7 @@ include 'header.php';
             <span class="badge bg-dark border border-info text-info text-uppercase py-2 px-3 mb-3" style="letter-spacing: 2px; font-size: 0.7rem;">Platform Overview & Guide</span>
             <h1 class="text-white glowing-title text-gradient-cyan-magenta mb-2" style="font-size: 2.5rem;">COMPREHENSIVE MEDIA LABORATORY</h1>
             <p class="text-secondary mx-auto" style="max-width: 680px; font-size: 1.05rem; line-height: 1.6;">
-                MediaFusion simplifies how you create and share content. Edit your clips and track your growth using a single dashboard built to save you time and effort automatically.
+                Unify Social Hub simplifies how you create and share content. Edit your clips and track your growth using a single dashboard built to save you time and effort automatically.
             </p>
         </div>
 

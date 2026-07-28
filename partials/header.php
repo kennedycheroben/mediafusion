@@ -1,6 +1,6 @@
 <?php
 /**
- * header.php — Shared <head> + <nav> partial for MediaFusion.
+ * header.php — Shared <head> + <nav> partial for Unify Social Hub.
  * Expects: $pageTitle (string), $activePage (string: 'home'|'vault'|'studio'|'dashboard'|'auth')
  * Optional: $extraHead (string) — additional <head> content (scripts, styles)
  */
@@ -15,7 +15,7 @@ if (!$isLoggedIn && !in_array($currentFile, $publicPages)) {
     exit;
 }
 
-if (!isset($pageTitle))  $pageTitle  = 'MediaFusion';
+if (!isset($pageTitle))  $pageTitle  = 'Unify Social Hub';
 if (!isset($activePage)) $activePage = '';
 ?>
 <!DOCTYPE html>
@@ -26,7 +26,7 @@ if (!isset($activePage)) $activePage = '';
     <title><?= htmlspecialchars($pageTitle) ?></title>
 
     <!-- SEO -->
-    <meta name="description" content="MediaFusion — High-performance multi-platform video distribution engine.">
+    <meta name="description" content="Unify Social Hub — High-performance multi-platform video distribution engine.">
 
     <!-- Bootstrap 5.3 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
