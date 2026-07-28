@@ -26,7 +26,7 @@ if (empty($_SESSION['csrf_token'])) {
 
 $currentFile = basename($_SERVER['PHP_SELF'] ?? '');
 $isLoggedIn = isset($_SESSION['user_id']);
-$publicPages = ['index.php', 'login.php', 'register.php', 'privacy.php', 'terms.php', 'about.php', 'request_password_reset.php', 'verify_password_reset.php', 'google_auth.php'];
+$publicPages = ['index.php', 'login.php', 'register.php', 'privacy.php', 'terms.php', 'data_deletion.php', 'about.php', 'request_password_reset.php', 'verify_password_reset.php', 'google_auth.php'];
 
 if (!$isLoggedIn && !in_array($currentFile, $publicPages, true)) {
     header('Location: login.php');

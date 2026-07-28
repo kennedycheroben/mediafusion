@@ -17,10 +17,10 @@ if (!in_array($platform, ['facebook', 'instagram'], true)) {
 // Persist the platform intent so callback_meta.php knows which token row to write.
 $_SESSION['meta_pending_platform'] = $platform;
 
-// CSRF Security: Generate or retrieve state token
-if (empty($_SESSION['meta_oauth_state'])) {
-    $_SESSION['meta_oauth_state'] = bin2hex(random_bytes(16));
-}
+// CSRF Security: Always generate a fresh state token for every new OAuth initiation.
+// This prevents a stale Facebook state from being reused when starting an Instagram flow
+// (or vice versa), which would cause meta_pending_platform to desync from meta_oauth_state.
+$_SESSION['meta_oauth_state'] = bin2hex(random_bytes(16));
 
 // Per-platform scope sets
 // Facebook: pages management + posting

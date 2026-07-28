@@ -24,6 +24,7 @@ cp .env.example .env
 
 Then update values for:
 - `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`
 - `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`
 - `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`, `TIKTOK_REDIRECT_URI`
 - `META_APP_ID`, `META_APP_SECRET`, `META_CONFIG_ID`, `META_REDIRECT_URI`
@@ -55,7 +56,8 @@ pip install -r backend/python/requirements.txt
 
 Set the redirect URIs exactly as:
 
-- YouTube / Google: `https://yourdomain.com/callback.php`
+- Google sign-in: `https://yourdomain.com/backend/google_auth.php`
+- YouTube: `https://yourdomain.com/callback.php`
 - TikTok: `https://yourdomain.com/callback.php`
 - Meta / Facebook: `https://yourdomain.com/callback_meta.php`
 

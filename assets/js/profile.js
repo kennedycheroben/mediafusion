@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
             const formData = new FormData();
             formData.append('csrf_token', csrfToken);
-            formData.append('action', 'local_upload');
+            formData.append('action', 'upload_local');
             formData.append('avatar_file', file);
             
             const imageWrapper = document.getElementById('avatarImageWrapper');
@@ -80,6 +80,55 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("AJAX Profile Upload Error:", err);
                 alert("An error occurred while uploading your profile picture.");
             });
+        });
+    }
+
+    const deleteAccountForm = document.getElementById('deleteAccountForm');
+    if (deleteAccountForm) {
+        deleteAccountForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const submitBtn = document.getElementById('deleteAccountSubmit');
+            const errorBox = document.getElementById('deleteAccountError');
+            if (errorBox) {
+                errorBox.classList.add('d-none');
+                errorBox.textContent = '';
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Deleting...';
+            }
+
+            try {
+                const response = await fetch('backend/delete_account.php', {
+                    method: 'POST',
+                    body: new FormData(deleteAccountForm),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Account deletion failed. Please try again.');
+                }
+
+                window.location.href = data.redirect || 'index.php?account_deleted=1';
+            } catch (err) {
+                if (errorBox) {
+                    errorBox.textContent = err.message;
+                    errorBox.classList.remove('d-none');
+                } else {
+                    alert(err.message);
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-trash-can me-2"></i>Delete Permanently';
+                }
+            }
         });
     }
 });

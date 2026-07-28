@@ -96,7 +96,10 @@ def fetch_pending_uploads(limit: int = 5) -> List[UploadJob]:
     cur = cnx.cursor(dictionary=True)
     cur.execute(
         "SELECT id, user_id, filename, title, description, platforms, file_path "
-        "FROM uploads WHERE status = 'pending' ORDER BY created_at ASC LIMIT %s",
+        "FROM uploads "
+        "WHERE status = 'pending' "
+        "AND EXISTS (SELECT 1 FROM users WHERE users.id = uploads.user_id) "
+        "ORDER BY created_at ASC LIMIT %s",
         (limit,),
     )
     rows = cur.fetchall()

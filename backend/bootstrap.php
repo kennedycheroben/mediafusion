@@ -46,6 +46,15 @@ require_once __DIR__ . '/storage/config.php';
 // ── 5. Database Connection ───────────────────────────────────────────────────
 require_once __DIR__ . '/db.php';
 
+try {
+    $columns = $pdo->query("DESCRIBE users")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('security_version', $columns, true)) {
+        $pdo->exec("ALTER TABLE users ADD COLUMN security_version INT NOT NULL DEFAULT 0");
+    }
+} catch (Throwable $e) {
+    error_log('Failed to verify users.security_version column: ' . $e->getMessage());
+}
+
 // ── 6. Centralized Session Bootstrap (after all helpers are loaded) ───────────
 mediafusion_session_start();
 
@@ -243,7 +252,11 @@ function is_session_security_valid(int $userId): bool {
     try {
         $stmt = $pdo->prepare("SELECT security_version FROM users WHERE id = ?");
         $stmt->execute([$userId]);
-        $dbVersion = (int)$stmt->fetchColumn();
+        $value = $stmt->fetchColumn();
+        if ($value === false) {
+            return false;
+        }
+        $dbVersion = (int)$value;
 
         $sessionVersion = $_SESSION['session_version'] ?? 0;
 

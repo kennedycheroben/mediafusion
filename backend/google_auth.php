@@ -11,13 +11,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 
-rateLimitPolicy('oauth_init');
-
 // ── Constants ────────────────────────────────────────────────────────────────
-$clientId     = YOUTUBE_CLIENT_ID;
-$clientSecret = YOUTUBE_CLIENT_SECRET;
-$redirectUri  = defined('GOOGLE_REDIRECT_URI') ? GOOGLE_REDIRECT_URI
-              : (function () {
+$clientId     = defined('GOOGLE_CLIENT_ID') ? GOOGLE_CLIENT_ID : YOUTUBE_CLIENT_ID;
+$clientSecret = defined('GOOGLE_CLIENT_SECRET') ? GOOGLE_CLIENT_SECRET : YOUTUBE_CLIENT_SECRET;
+$redirectUri  = defined('GOOGLE_REDIRECT_URI') ? trim((string)GOOGLE_REDIRECT_URI) : (function () {
                     $scheme = (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])
                         ? $_SERVER['HTTP_X_FORWARDED_PROTO']
                         : (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http'));
@@ -26,11 +23,6 @@ $redirectUri  = defined('GOOGLE_REDIRECT_URI') ? GOOGLE_REDIRECT_URI
                     return $scheme . '://' . $host . $base . '/backend/google_auth.php';
                 })();
 
-// Normalize redirectUri: strip query parameter '?action=callback' if it is already present to prevent double appending.
-if (str_contains($redirectUri, 'action=callback')) {
-    $redirectUri = str_replace(['?action=callback', '&action=callback'], '', $redirectUri);
-}
-
 $scopes = implode(' ', [
     'openid',
     'https://www.googleapis.com/auth/userinfo.email',
@@ -38,16 +30,25 @@ $scopes = implode(' ', [
 ]);
 
 $action = $_GET['action'] ?? '';
+$isCallback = $action === 'callback' || isset($_GET['code']) || isset($_GET['error']);
 
 // ── 1. REDIRECT — send user to Google ────────────────────────────────────────
 if ($action === 'redirect') {
+    rateLimitPolicy('oauth_init');
+
+    if ($clientId === '' || $clientSecret === '' || $redirectUri === '') {
+        $_SESSION['auth_error'] = 'Google sign-in is not configured yet. Please add Google OAuth credentials.';
+        header('Location: ../login.php');
+        exit;
+    }
+
     // CSRF state token
     $state = bin2hex(random_bytes(16));
     $_SESSION['google_oauth_state'] = $state;
 
     $params = http_build_query([
         'client_id'             => $clientId,
-        'redirect_uri'          => $redirectUri . '?action=callback',
+        'redirect_uri'          => $redirectUri,
         'response_type'         => 'code',
         'scope'                 => $scopes,
         'access_type'           => 'online',
@@ -60,7 +61,8 @@ if ($action === 'redirect') {
 }
 
 // ── 2. CALLBACK — exchange code for user info ─────────────────────────────────
-if ($action === 'callback') {
+if ($isCallback) {
+    rateLimitPolicy('oauth_callback');
 
     // CSRF validation
     $returnedState = $_GET['state'] ?? '';
@@ -92,7 +94,7 @@ if ($action === 'callback') {
         'code'          => $code,
         'client_id'     => $clientId,
         'client_secret' => $clientSecret,
-        'redirect_uri'  => $redirectUri . '?action=callback',
+        'redirect_uri'  => $redirectUri,
         'grant_type'    => 'authorization_code',
     ]);
 
@@ -109,12 +111,13 @@ if ($action === 'callback') {
         $tokenResponse['access_token']
     );
 
-    $googleId = $userInfo['sub']        ?? '';
-    $email    = $userInfo['email']      ?? '';
-    $name     = $userInfo['name']       ?? '';
-    $picture  = $userInfo['picture']    ?? '';
+    $googleId      = trim((string)($userInfo['sub'] ?? ''));
+    $email         = trim((string)($userInfo['email'] ?? ''));
+    $emailVerified = filter_var($userInfo['email_verified'] ?? false, FILTER_VALIDATE_BOOL);
+    $name          = trim((string)($userInfo['name'] ?? ''));
+    $picture       = trim((string)($userInfo['picture'] ?? ''));
 
-    if (empty($googleId) || empty($email)) {
+    if ($googleId === '' || $email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || !$emailVerified) {
         $_SESSION['auth_error'] = 'Google sign-in failed: could not retrieve your profile.';
         header('Location: ../login.php');
         exit;
@@ -130,7 +133,7 @@ if ($action === 'callback') {
     try {
         $cols = $pdo->query("DESCRIBE users")->fetchAll(PDO::FETCH_COLUMN);
         if (!in_array('google_id', $cols, true)) {
-            $pdo->exec("ALTER TABLE users ADD COLUMN google_id VARCHAR(32) DEFAULT NULL UNIQUE");
+            $pdo->exec("ALTER TABLE users ADD COLUMN google_id VARCHAR(255) DEFAULT NULL UNIQUE");
         }
         if (!in_array('avatar_url', $cols, true)) {
             $pdo->exec("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(512) DEFAULT NULL");
@@ -165,6 +168,9 @@ if ($action === 'callback') {
         // New user — auto-register
         // Derive a unique username from Google display name
         $baseUsername = preg_replace('/[^a-zA-Z0-9_]/', '', str_replace(' ', '_', strtolower($name)));
+        if (!$baseUsername) {
+            $baseUsername = preg_replace('/[^a-zA-Z0-9_]/', '', strstr($email, '@', true) ?: '');
+        }
         $baseUsername = $baseUsername ?: 'user';
         if (strlen($baseUsername) < 3) $baseUsername = 'user_' . $baseUsername;
 
@@ -212,11 +218,26 @@ exit;
  * @return array
  */
 function _google_post(string $url, array $data): array {
+    $body = http_build_query($data);
+
+    if (!function_exists('curl_init')) {
+        $context = stream_context_create([
+            'http' => [
+                'method'  => 'POST',
+                'header'  => "Content-Type: application/x-www-form-urlencoded\r\n",
+                'content' => $body,
+                'timeout' => 15,
+            ],
+        ]);
+        $response = @file_get_contents($url, false, $context);
+        return json_decode((string)$response, true) ?? [];
+    }
+
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => http_build_query($data),
+        CURLOPT_POSTFIELDS     => $body,
         CURLOPT_HTTPHEADER     => ['Content-Type: application/x-www-form-urlencoded'],
         CURLOPT_TIMEOUT        => 15,
         CURLOPT_SSL_VERIFYPEER => true,
@@ -233,6 +254,18 @@ function _google_post(string $url, array $data): array {
  * @return array
  */
 function _google_get(string $url, string $accessToken): array {
+    if (!function_exists('curl_init')) {
+        $context = stream_context_create([
+            'http' => [
+                'method'  => 'GET',
+                'header'  => 'Authorization: Bearer ' . $accessToken . "\r\n",
+                'timeout' => 15,
+            ],
+        ]);
+        $response = @file_get_contents($url, false, $context);
+        return json_decode((string)$response, true) ?? [];
+    }
+
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,

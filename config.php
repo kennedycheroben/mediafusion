@@ -61,6 +61,16 @@ function MEDIAFUSION_load_env_file(string $path): void {
         if (($val[0] ?? '') === '"' && str_ends_with($val, '"')) $val = substr($val, 1, -1);
         if (($val[0] ?? '') === "'" && str_ends_with($val, "'")) $val = substr($val, 1, -1);
 
+        // Real process environment takes precedence over .env so deployments,
+        // workers, and tests can override local file defaults safely.
+        $existing = getenv($key);
+        if (array_key_exists($key, $_ENV) || $existing !== false) {
+            if (!array_key_exists($key, $_ENV) && $existing !== false) {
+                $_ENV[$key] = $existing;
+            }
+            continue;
+        }
+
         // Always populate $_ENV (readable via $_ENV[] and getenv() in same process)
         $_ENV[$key] = $val;
 
@@ -167,6 +177,8 @@ define('IG_APP_ID', MEDIAFUSION_get_env('IG_APP_ID') ?: MEDIAFUSION_get_env('MED
 define('IG_APP_SECRET', MEDIAFUSION_get_env('IG_APP_SECRET') ?: MEDIAFUSION_get_env('MEDIAFUSION_IG_APP_SECRET') ?: '');
 
 // 3. Dynamic Google / YouTube API Credentials
+define('GOOGLE_CLIENT_ID', MEDIAFUSION_get_env('GOOGLE_CLIENT_ID') ?: MEDIAFUSION_get_env('YOUTUBE_CLIENT_ID') ?: '');
+define('GOOGLE_CLIENT_SECRET', MEDIAFUSION_get_env('GOOGLE_CLIENT_SECRET') ?: MEDIAFUSION_get_env('YOUTUBE_CLIENT_SECRET') ?: '');
 define('YOUTUBE_CLIENT_ID', MEDIAFUSION_get_env('YOUTUBE_CLIENT_ID') ?: '');
 define('YOUTUBE_CLIENT_SECRET', MEDIAFUSION_get_env('YOUTUBE_CLIENT_SECRET') ?: '');
 // Google Sign-In redirect URI (points to the google_auth callback handler)

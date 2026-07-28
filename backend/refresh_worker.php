@@ -204,8 +204,9 @@ try {
     }
 
     $stmt = $pdo->query(
-        "SELECT user_id, platform, access_token, refresh_token, token_expiry
+        "SELECT oauth_tokens.user_id, oauth_tokens.platform, oauth_tokens.access_token, oauth_tokens.refresh_token, oauth_tokens.token_expiry
          FROM oauth_tokens
+         INNER JOIN users ON users.id = oauth_tokens.user_id
          WHERE token_expiry IS NOT NULL
            AND token_expiry <= DATE_ADD(NOW(), INTERVAL 15 MINUTE)"
     );
@@ -232,4 +233,3 @@ try {
     log_line('refresh_worker fatal: ' . $e->getMessage());
     exit(1);
 }
-

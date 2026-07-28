@@ -263,6 +263,7 @@ define('RATE_POLICIES', [
     'upload_studio'        => ['max' => 20,  'window' => 60,   'cat' => 'upload'],
 
     // Sensitive actions
+    'account_deletion'      => ['max' => 3,   'window' => 3600, 'cat' => 'sensitive'],
     'sensitive_account'    => ['max' => 10,  'window' => 300,  'cat' => 'sensitive'],
     'sensitive_password'   => ['max' => 5,   'window' => 300,  'cat' => 'sensitive'],
     'sensitive_social'     => ['max' => 10,  'window' => 300,  'cat' => 'sensitive'],

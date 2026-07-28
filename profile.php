@@ -12,18 +12,9 @@
 
 declare(strict_types=1);
 
-if (session_status() === PHP_SESSION_ACTIVE) {
-    // Session is active
-} else {
-    session_start();
-}
+require_once __DIR__ . '/backend/bootstrap.php';
 
-$userId = $_SESSION['user_id'] ?? null;
-
-if ($userId === null) {
-    header('Location: login.php');
-    exit;
-}
+$userId = requireAuth();
 
 try {
     require_once 'backend/db.php';
@@ -50,6 +41,9 @@ $error   = '';
 // 1. Process Actions POST Handlers
 // ----------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_csrf();
+    rateLimitPolicy('sensitive_account');
+
     $action = isset($_POST['action']) ? trim((string)$_POST['action']) : '';
 
     // Action A: Update display name, email, and password credentials
@@ -182,6 +176,7 @@ include 'header.php';
                 <h5 class="mb-2" style="font-size: 0.9rem; color: var(--text-primary);"><i class="fa-solid fa-upload me-2 text-primary"></i>Local Upload</h5>
                 <p class="text-secondary small mb-3">Upload a clean PNG, JPG, or JPEG file from your device.</p>
                 <form action="sync_social_profile.php" method="POST" enctype="multipart/form-data">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="action" value="upload_local">
                     <div class="mb-3">
                         <input type="file" name="avatar_file" class="form-control form-control-cyber" accept="image/png, image/jpeg, image/jpg" required>
@@ -195,6 +190,7 @@ include 'header.php';
                 <h5 class="mb-2" style="font-size: 0.9rem; color: var(--text-primary);"><i class="fa-solid fa-rotate me-2 text-primary"></i>Copy from Social Account</h5>
                 <p class="text-secondary small mb-3">Copy your profile picture from your connected social account.</p>
                 <form action="sync_social_profile.php" method="POST">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="action" value="sync_social">
                     <div class="mb-3">
                         <input type="url" name="social_avatar_url" class="form-control form-control-cyber py-2" style="font-size: 0.8rem;" placeholder="Paste platform image URL..." required>
@@ -208,6 +204,7 @@ include 'header.php';
     <!-- Update Form -->
     <div class="glass-card">
         <form action="profile.php" method="POST" id="profileForm" autocomplete="off">
+            <?= csrf_field() ?>
             <input type="hidden" name="action" value="update_profile">
 
             <!-- Display Name -->
@@ -261,9 +258,9 @@ include 'header.php';
     </div>
 
     <!-- Danger Zone -->
-    <div class="glass-card mt-4" style="border-color:rgba(255,68,68,.2);">
-        <p class="section-label" style="color:#ff6666;"><i class="fa-solid fa-radiation me-2"></i>Sign Out</p>
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div class="glass-card mt-4" style="border-color:rgba(255,68,68,.25);">
+        <p class="section-label" style="color:#ff6666;"><i class="fa-solid fa-triangle-exclamation me-2"></i>Danger Zone</p>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
             <div>
                 <p class="mb-1" style="font-size:.9rem; color: var(--text-primary);">Sign Out of Your Account</p>
                 <p class="text-secondary mb-0" style="font-size:.8rem;">You will be signed out of this website.</p>
@@ -272,10 +269,54 @@ include 'header.php';
                 Sign Out <i class="fa-solid fa-arrow-right-from-bracket ms-2"></i>
             </a>
         </div>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 border-top pt-4" style="border-color:rgba(255,68,68,.18) !important;">
+            <div style="max-width:520px;">
+                <p class="mb-1" style="font-size:.9rem; color: var(--text-primary);">Delete My Account</p>
+                <p class="text-secondary mb-0" style="font-size:.8rem;">Permanently delete your account, connected social tokens, uploads, studio projects, brand assets, profile images, and queued jobs. Support inquiries may be retained without your account link.</p>
+            </div>
+            <button type="button" class="btn btn-outline-danger fw-bold text-uppercase" data-bs-toggle="modal" data-bs-target="#deleteAccountModal" style="border-radius:4px;font-size:.78rem;padding:.65rem 1.1rem;">
+                Delete Account <i class="fa-solid fa-trash-can ms-2"></i>
+            </button>
+        </div>
     </div>
 
 </div>
 </main>
+
+<div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:8px;border:1px solid rgba(255,68,68,.28);">
+            <form id="deleteAccountForm" autocomplete="off">
+                <?= csrf_field() ?>
+                <div class="modal-header border-0">
+                    <h5 class="modal-title text-danger" id="deleteAccountModalLabel"><i class="fa-solid fa-triangle-exclamation me-2"></i>Delete Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger" style="font-size:.86rem;">
+                        This is permanent. Media, uploads, studio projects, brand assets, OAuth connections, and scheduled or queued work owned by your account will be deleted or cancelled.
+                    </div>
+                    <p class="text-secondary small mb-3">Connected YouTube, TikTok, Facebook, and Instagram tokens will be removed. Contact/support records may remain for support continuity with your account link removed.</p>
+                    <div class="mb-3">
+                        <label class="form-label small text-uppercase fw-bold">Current Password</label>
+                        <input type="password" name="current_password" class="form-control form-control-cyber" autocomplete="current-password" placeholder="Required for password accounts">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-uppercase fw-bold">Type DELETE MY ACCOUNT</label>
+                        <input type="text" name="confirmation" class="form-control form-control-cyber" autocomplete="off" required>
+                    </div>
+                    <div class="alert alert-danger d-none mt-3 mb-0" id="deleteAccountError" style="font-size:.84rem;"></div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger fw-bold" id="deleteAccountSubmit">
+                        <i class="fa-solid fa-trash-can me-2"></i>Delete Permanently
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script src="assets/js/profile.js"></script>
 

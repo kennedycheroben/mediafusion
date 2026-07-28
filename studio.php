@@ -453,10 +453,10 @@ include 'header.php';
                 <i class="fa-solid fa-cloud-arrow-up me-2"></i>Direct Upload
             </button>
             <button class="studio-tab-btn" id="modeCapcutBtn" onclick="toggleStudioMode('video')">
-                <i class="fa-solid fa-video me-2"></i>CapCut Video Editor
+                <i class="fa-solid fa-video me-2"></i>Video Editor
             </button>
             <button class="studio-tab-btn" id="modePhotoshopBtn" onclick="toggleStudioMode('photoshop')">
-                <i class="fa-solid fa-image me-2"></i>Photoshop Image Editor
+                <i class="fa-solid fa-image me-2"></i>Image Editor
             </button>
         </div>
 

@@ -331,7 +331,12 @@ def process_upload(upload_id):
 
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM uploads WHERE id = %s", (upload_id,))
+        cursor.execute("""
+            SELECT uploads.*
+            FROM uploads
+            INNER JOIN users ON users.id = uploads.user_id
+            WHERE uploads.id = %s
+        """, (upload_id,))
         upload_record = cursor.fetchone()
         
         if not upload_record:
