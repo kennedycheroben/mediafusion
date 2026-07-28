@@ -160,7 +160,7 @@ class CyberpunkSMTPClient {
             "From: \"" . $fromName . "\" <" . $this->username . ">",
             "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=",
             "Date: " . date('r'),
-            "X-Mailer: Unify OO Sockets Client v1.0"
+            "X-Mailer: MediaFusion SMTP Client v1.0"
         ];
 
         $rawMessage = implode("\r\n", $headers) . "\r\n\r\n" . $body . "\r\n.\r\n";
@@ -247,7 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Only try if default credentials changed
             if ($smtpUser !== 'support@example.com' && $smtpUser !== 'support@cpanel_domain.com') {
-                $mailSent = $client->send($email, $subject, $emailBody, "Unify Authentication Vault");
+                $mailSent = $client->send($email, $subject, $emailBody, "MediaFusion Authentication Vault");
                 $smtpLogs = $client->getLogs();
             } else {
                 $client->log("cPanel SMTP mail credentials are at placeholders. Bypassing socket send...");

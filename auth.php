@@ -22,7 +22,7 @@ if (isset($_SESSION['user_id'])) {
     <nav class="navbar navbar-expand-lg navbar-glass">
         <div class="container-fluid">
             <a class="navbar-brand" href="index.php">
-                <img src="assets/img/logo.png" alt="Unify Logo" class="brand-logo"> Unify
+            <img src="assets/img/logo.png" alt="MediaFusion Logo" class="brand-logo"> MediaFusion
             </a>
             <div class="collapse navbar-collapse justify-content-end">
                 <ul class="navbar-nav align-items-center gap-3">
@@ -35,7 +35,7 @@ if (isset($_SESSION['user_id'])) {
     <div class="auth-container">
         <div class="glass-card auth-card">
             <div class="text-center mb-4">
-                <img src="assets/img/logo.png" alt="Unify Logo" style="height: 60px; filter: drop-shadow(0 0 10px var(--neon-cyan));" class="mb-3">
+                <img src="assets/img/logo.png" alt="MediaFusion Logo" style="height: 60px; filter: drop-shadow(0 0 10px var(--neon-cyan));" class="mb-3">
                 <h2 id="authTitle" class="text-gradient-cyan">System Login</h2>
                 <p id="authSubtitle" class="text-secondary">Authenticate to access the distribution engine.</p>
             </div>

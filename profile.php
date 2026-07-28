@@ -193,7 +193,7 @@ include 'header.php';
             <!-- Platform synchronizer cURL download form -->
             <div class="col-md-6 ps-md-4">
                 <h5 class="text-white mb-2" style="font-size: 0.9rem;"><i class="fa-solid fa-rotate me-2 text-info"></i>Social Profile Copy</h5>
-                <p class="text-secondary small mb-3">Copy your platform profile avatar instantly to Unify via cURL.</p>
+                <p class="text-secondary small mb-3">Copy your platform profile avatar instantly to MediaFusion via cURL.</p>
                 <form action="sync_social_profile.php" method="POST">
                     <input type="hidden" name="action" value="sync_social">
                     <div class="mb-3">

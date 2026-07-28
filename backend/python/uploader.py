@@ -13,11 +13,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 def get_db_connection():
     try:
-        host = os.getenv("UNIFY_DB_HOST") or os.getenv("DB_HOST") or os.getenv("MYSQLHOST") or "127.0.0.1"
-        port = os.getenv("UNIFY_DB_PORT") or os.getenv("DB_PORT") or os.getenv("MYSQLPORT") or "3306"
-        user = os.getenv("UNIFY_DB_USER") or os.getenv("DB_USER") or os.getenv("MYSQLUSER") or "root"
-        password = os.getenv("UNIFY_DB_PASS") or os.getenv("DB_PASS") or os.getenv("MYSQLPASSWORD") or ""
-        database = os.getenv("UNIFY_DB_NAME") or os.getenv("DB_NAME") or os.getenv("MYSQLDATABASE") or "unify_social_hub"
+        host = os.getenv("MEDIAFUSION_DB_HOST") or os.getenv("DB_HOST") or os.getenv("MYSQLHOST") or "127.0.0.1"
+        port = os.getenv("MEDIAFUSION_DB_PORT") or os.getenv("DB_PORT") or os.getenv("MYSQLPORT") or "3306"
+        user = os.getenv("MEDIAFUSION_DB_USER") or os.getenv("DB_USER") or os.getenv("MYSQLUSER") or "root"
+        password = os.getenv("MEDIAFUSION_DB_PASS") or os.getenv("DB_PASS") or os.getenv("MYSQLPASSWORD") or ""
+        database = os.getenv("MEDIAFUSION_DB_NAME") or os.getenv("DB_NAME") or os.getenv("MYSQLDATABASE") or "mediafusion"
         
         return mysql.connector.connect(
             host=host,

@@ -21,7 +21,7 @@ $extraHead  = '
                             <span class="text-gradient-cyan">Light Speed.</span>
                         </h1>
                         <p class="lead text-secondary mb-5 gsap-fade-in" data-scroll data-scroll-speed="1.2">
-                            A high-performance engine to broadcast your videos across YouTube, TikTok, and Meta simultaneously. Unify your social presence with a single click.
+                            A high-performance engine to broadcast your videos across YouTube, TikTok, and Meta simultaneously. Fuse your media presence with a single click.
                         </p>
                         <div class="d-flex gap-4 gsap-fade-in" data-scroll data-scroll-speed="1.4">
                             <a href="connect.php" class="btn-magnetic" style="border-color: var(--neon-magenta); color: #fff;">
@@ -33,7 +33,7 @@ $extraHead  = '
                     <div class="col-lg-6 position-relative z-1 gsap-fade-in">
                         <!-- Floating Orbit GSAP Animation -->
                         <div class="orbit-container" data-scroll data-scroll-speed="-1">
-                            <div class="center-hub">
+                            <div class="center-core">
                                 <i class="fa-solid fa-satellite-dish text-gradient-cyan"></i>
                             </div>
                             <div class="orbit-ring">

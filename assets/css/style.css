@@ -350,7 +350,7 @@ input:checked ~ .platform-icon.meta { color: var(--meta-blue); text-shadow: 0 0 
   margin: 0 auto;
 }
 
-.center-hub {
+.center-core {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -474,7 +474,7 @@ video {
     margin-top: 3rem;
   }
   .orbit-icon.yt { left: 120px; }
-  .center-hub {
+  .center-core {
     width: 80px;
     height: 80px;
     font-size: 2rem;
@@ -1145,5 +1145,4 @@ footer::before {
 .img-editor-canvas-wrap:hover {
     border-color: rgba(0, 243, 255, 0.38) !important;
 }
-
 

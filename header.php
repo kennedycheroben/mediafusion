@@ -51,7 +51,7 @@ if (!isset($activePage)) $activePage = '';
 <nav class="navbar navbar-expand-lg navbar-glass">
     <div class="container-fluid">
         <a class="navbar-brand" href="index.php">
-            <img src="assets/img/logo.png" alt="Unify Logo" class="brand-logo"> Unify
+            <img src="assets/img/logo.png" alt="MediaFusion Logo" class="brand-logo"> MediaFusion
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -115,4 +115,3 @@ if (!isset($activePage)) $activePage = '';
         </div>
     </div>
 </nav>
-
