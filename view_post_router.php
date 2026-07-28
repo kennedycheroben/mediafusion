@@ -325,7 +325,7 @@ if ($platform !== null) {
         </div>
         <div>
             <a href="index.php" class="btn btn-outline-light btn-sm px-3" style="border-radius: 4px; font-size: 0.8rem;">
-                <i class="fa-solid fa-arrow-left me-2"></i>Back to Dashboard
+                <i class="fa-solid fa-arrow-left me-2"></i>Back to Hub
             </a>
         </div>
     </div>

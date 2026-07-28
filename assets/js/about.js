@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Custom canvas graphics nodes for simulation
     const connectionNodes = [
         { x: 200, y: 150, radius: 8, color: '#00f3ff', label: 'Local Upload' },
-        { x: 450, y: 150, radius: 12, color: '#ff00ff', label: 'MediaFusion Core' },
+        { x: 450, y: 150, radius: 12, color: '#ff00ff', label: 'Unify Core' },
         { x: 700, y: 80, radius: 8, color: '#ff0000', label: 'YouTube API' },
         { x: 700, y: 150, radius: 8, color: '#00f3ff', label: 'TikTok SDK' },
         { x: 700, y: 220, radius: 8, color: '#1877f2', label: 'Meta Graph' }

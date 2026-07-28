@@ -16,7 +16,7 @@ declare(strict_types=1);
  * - Optional file: /opt/lampp/htdocs/mediafusion/.env
  * - Never prints secrets; only sets process env via putenv().
  */
-function mediafusion_load_env_file(string $path): void {
+function unify_load_env_file(string $path): void {
     if (!is_file($path) || !is_readable($path)) {
         return;
     }
@@ -41,9 +41,9 @@ function mediafusion_load_env_file(string $path): void {
 }
 
 // Instantiate environment loader
-mediafusion_load_env_file(__DIR__ . '/.env');
+unify_load_env_file(__DIR__ . '/.env');
 
-function mediafusion_is_https(): bool {
+function unify_is_https(): bool {
     if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
         return strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https';
     }
@@ -53,9 +53,9 @@ function mediafusion_is_https(): bool {
     return (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443);
 }
 
-function mediafusion_detect_redirect_uri(): string {
+function unify_detect_redirect_uri(): string {
     // If explicitly configured, use exact string (console must match exactly).
-    $forced = getenv('MEDIAFUSION_OAUTH_REDIRECT_URI') ?: getenv('TIKTOK_REDIRECT_URI');
+    $forced = getenv('UNIFY_OAUTH_REDIRECT_URI') ?: getenv('TIKTOK_REDIRECT_URI');
     if (is_string($forced) && $forced !== '') {
         return $forced;
     }
@@ -63,7 +63,7 @@ function mediafusion_detect_redirect_uri(): string {
     if (!isset($_SERVER['HTTP_HOST'], $_SERVER['SCRIPT_NAME'])) {
         return 'http://localhost/mediafusion/connect.php';
     }
-    $scheme = mediafusion_is_https() ? 'https' : 'http';
+    $scheme = unify_is_https() ? 'https' : 'http';
     $host = (string)$_SERVER['HTTP_HOST'];
     $basePath = rtrim(str_replace('\\', '/', dirname((string)$_SERVER['SCRIPT_NAME'])), '/');
     $path = $basePath === '' ? '/connect.php' : $basePath . '/connect.php';
@@ -74,11 +74,11 @@ function mediafusion_detect_redirect_uri(): string {
  * Detect absolute URL for an arbitrary script in the app (e.g. callback.php)
  * Falls back to localhost path when server variables are not available.
  */
-function mediafusion_detect_script_uri(string $script = 'callback.php'): string {
+function unify_detect_script_uri(string $script = 'callback.php'): string {
     if (!isset($_SERVER['HTTP_HOST'], $_SERVER['SCRIPT_NAME'])) {
         return 'http://localhost/mediafusion/' . ltrim($script, '/');
     }
-    $scheme = mediafusion_is_https() ? 'https' : 'http';
+    $scheme = unify_is_https() ? 'https' : 'http';
     $host = (string)$_SERVER['HTTP_HOST'];
     $basePath = rtrim(str_replace('\\', '/', dirname((string)$_SERVER['SCRIPT_NAME'])), '/');
     $path = $basePath === '' ? '/' . ltrim($script, '/') : $basePath . '/' . ltrim($script, '/');
@@ -88,19 +88,19 @@ function mediafusion_detect_script_uri(string $script = 'callback.php'): string 
 // ---- Production overrides: when running on the live domain, prefer explicit production credentials
 $productionHost = 'fusionmedia.top';
 $hostLower = strtolower($_SERVER['HTTP_HOST'] ?? '');
-if (strpos($hostLower, $productionHost) !== false || getenv('MEDIAFUSION_FORCE_PRODUCTION') === '1') {
+if (strpos($hostLower, $productionHost) !== false || getenv('UNIFY_FORCE_PRODUCTION') === '1') {
     // Only set these if they are not already provided by environment (.env or server)
     if (strpos($hostLower, $productionHost) !== false || getenv('RAILWAY_ENVIRONMENT') !== false) {
     
     $prodBase = 'https://' . $productionHost;
-    if (getenv('MEDIAFUSION_OAUTH_REDIRECT_URI') === false) putenv('MEDIAFUSION_OAUTH_REDIRECT_URI=' . $prodBase . '/callback.php');
+    if (getenv('UNIFY_OAUTH_REDIRECT_URI') === false) putenv('UNIFY_OAUTH_REDIRECT_URI=' . $prodBase . '/callback.php');
     if (getenv('TIKTOK_REDIRECT_URI') === false) putenv('TIKTOK_REDIRECT_URI=' . $prodBase . '/callback.php');
     if (getenv('META_REDIRECT_URI') === false) putenv('META_REDIRECT_URI=' . $prodBase . '/callback_meta.php');
     
-}('DB_NAME=if0_42025520_mediafusion');
+}('DB_NAME=if0_42025520_UnifySocialHub');
 
     $prodBase = 'https://' . $productionHost;
-    if (getenv('MEDIAFUSION_OAUTH_REDIRECT_URI') === false) putenv('MEDIAFUSION_OAUTH_REDIRECT_URI=' . $prodBase . '/callback.php');
+    if (getenv('UNIFY_OAUTH_REDIRECT_URI') === false) putenv('UNIFY_OAUTH_REDIRECT_URI=' . $prodBase . '/callback.php');
     if (getenv('TIKTOK_REDIRECT_URI') === false) putenv('TIKTOK_REDIRECT_URI=' . $prodBase . '/callback.php');
     if (getenv('META_REDIRECT_URI') === false) putenv('META_REDIRECT_URI=' . $prodBase . '/callback_meta.php');
 }
@@ -112,10 +112,10 @@ define('DB_USER', getenv('DB_USER') ?: getenv('MYSQLUSER') ?: 'root');
 define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : (getenv('MYSQLPASSWORD') !== false ? getenv('MYSQLPASSWORD') : ''));
 define('DB_NAME', getenv('DB_NAME') ?: getenv('MYSQLDATABASE') ?: 'railway');
 // 2. Dynamic Meta / Instagram API Credentials
-define('FB_APP_ID', getenv('FB_APP_ID') ?: getenv('MEDIAFUSION_FB_APP_ID') ?: '');
-define('FB_APP_SECRET', getenv('FB_APP_SECRET') ?: getenv('MEDIAFUSION_FB_APP_SECRET') ?: '');
-define('IG_APP_ID', getenv('IG_APP_ID') ?: getenv('MEDIAFUSION_IG_APP_ID') ?: '');
-define('IG_APP_SECRET', getenv('IG_APP_SECRET') ?: getenv('MEDIAFUSION_IG_APP_SECRET') ?: '');
+define('FB_APP_ID', getenv('FB_APP_ID') ?: getenv('UNIFY_FB_APP_ID') ?: '');
+define('FB_APP_SECRET', getenv('FB_APP_SECRET') ?: getenv('UNIFY_FB_APP_SECRET') ?: '');
+define('IG_APP_ID', getenv('IG_APP_ID') ?: getenv('UNIFY_IG_APP_ID') ?: '');
+define('IG_APP_SECRET', getenv('IG_APP_SECRET') ?: getenv('UNIFY_IG_APP_SECRET') ?: '');
 
 // 3. Dynamic Google / YouTube API Credentials
 define('YOUTUBE_CLIENT_ID', getenv('YOUTUBE_CLIENT_ID') ?: '903707729051-g7dlb4g53b907mv4mpbok22tao5rmmml.apps.googleusercontent.com');
@@ -123,18 +123,18 @@ define('YOUTUBE_CLIENT_SECRET', getenv('YOUTUBE_CLIENT_SECRET') ?: 'GOCSPX-MSOep
 
 // 4. Dynamic TikTok API Sandbox Credentials
 // REDIRECT_URI is used as the OAuth callback for Google/TikTok flows. Default to the detected callback URL.
-define('REDIRECT_URI', getenv('TIKTOK_REDIRECT_URI') ?: mediafusion_detect_script_uri('callback.php'));
+define('REDIRECT_URI', getenv('TIKTOK_REDIRECT_URI') ?: unify_detect_script_uri('callback.php'));
 define('TIKTOK_CLIENT_KEY', getenv('TIKTOK_CLIENT_KEY') ?: 'sbaww7xjk9qim5act5');
 define('TIKTOK_CLIENT_SECRET', getenv('TIKTOK_CLIENT_SECRET') ?: 'IMzS614FNuWf9e9jNflA1lQLpNVVv2fj');
 
 // 5. Instagram Access Token
-define('IG_TEMP_TOKEN', getenv('MEDIAFUSION_IG_TEMP_TOKEN') ?: '');
+define('IG_TEMP_TOKEN', getenv('UNIFY_IG_TEMP_TOKEN') ?: '');
 
-// 6. Dynamic Meta API Integration Keys (Meta FB & IG)
+// 6. Dynamic Meta API Integration Keys (Unified FB & IG)
 define('META_APP_ID', getenv('META_APP_ID') ?: '950500347761069'); 
 define('META_APP_SECRET', getenv('META_APP_SECRET') ?: 'f64ae46693cbaecf191eb0a31417df5e');
 define('META_CONFIG_ID', getenv('META_CONFIG_ID') ?: '1731252727876526');
-define('META_REDIRECT_URI', getenv('META_REDIRECT_URI') ?: mediafusion_detect_script_uri('callback_meta.php'));
+define('META_REDIRECT_URI', getenv('META_REDIRECT_URI') ?: unify_detect_script_uri('callback_meta.php'));
 define('META_GRAPH_VERSION', getenv('META_GRAPH_VERSION') ?: 'v25.0');
 
 // 7. Dynamic SMTP Transactional Settings

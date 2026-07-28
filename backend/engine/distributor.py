@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MediaFusion Distribution Engine
+Unify Studios Distribution Engine
 --------------------------------
 backend/engine/distributor.py
 
@@ -21,7 +21,7 @@ Dependencies (install via pip):
     - requests
 
 Environment variables:
-    - MEDIAFUSION_DB_HOST, MEDIAFUSION_DB_USER, MEDIAFUSION_DB_PASS, MEDIAFUSION_DB_NAME
+    - UNIFY_DB_HOST, UNIFY_DB_USER, UNIFY_DB_PASS, UNIFY_DB_NAME
 """
 
 from __future__ import annotations
@@ -70,11 +70,11 @@ class UploadJob:
 
 
 def db_connect():
-    host = os.getenv("MEDIAFUSION_DB_HOST") or os.getenv("DB_HOST") or os.getenv("MYSQLHOST") or "localhost"
-    port = os.getenv("MEDIAFUSION_DB_PORT") or os.getenv("DB_PORT") or os.getenv("MYSQLPORT") or "3306"
-    user = os.getenv("MEDIAFUSION_DB_USER") or os.getenv("DB_USER") or os.getenv("MYSQLUSER") or "root"
-    password = os.getenv("MEDIAFUSION_DB_PASS") or os.getenv("DB_PASS") or os.getenv("MYSQLPASSWORD") or ""
-    database = os.getenv("MEDIAFUSION_DB_NAME") or os.getenv("DB_NAME") or os.getenv("MYSQLDATABASE") or "mediafusion"
+    host = os.getenv("UNIFY_DB_HOST") or os.getenv("DB_HOST") or os.getenv("MYSQLHOST") or "localhost"
+    port = os.getenv("UNIFY_DB_PORT") or os.getenv("DB_PORT") or os.getenv("MYSQLPORT") or "3306"
+    user = os.getenv("UNIFY_DB_USER") or os.getenv("DB_USER") or os.getenv("MYSQLUSER") or "root"
+    password = os.getenv("UNIFY_DB_PASS") or os.getenv("DB_PASS") or os.getenv("MYSQLPASSWORD") or ""
+    database = os.getenv("UNIFY_DB_NAME") or os.getenv("DB_NAME") or os.getenv("MYSQLDATABASE") or "unify_social_hub"
     
     return mysql.connector.connect(
         host=host,

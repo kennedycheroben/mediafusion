@@ -439,7 +439,7 @@ $hasCustomAvatar = ($avatarPath !== '' && is_file(__DIR__ . '/' . $avatarPath));
                 <div class="mt-3">
                     <label class="form-label text-secondary small text-uppercase mb-2" style="font-size: 0.62rem; letter-spacing: 0.5px;">Quick Demo Setup</label>
                     <div class="d-flex flex-column gap-2">
-                        <div class="sync-demo-pill" onclick="loadPreset('https://api.dicebear.com/7.x/bottts/png?seed=mediafusion_operator_one&backgroundColor=110e1f')">
+                        <div class="sync-demo-pill" onclick="loadPreset('https://api.dicebear.com/7.x/bottts/png?seed=unify_operator_one&backgroundColor=110e1f')">
                             <i class="fa-brands fa-google text-danger me-2"></i><strong>Use a Sample Google Profile Picture</strong>
                         </div>
                         <div class="sync-demo-pill" onclick="loadPreset('https://api.dicebear.com/7.x/bottts/png?seed=cyber_operator_two&backgroundColor=110e1f')">

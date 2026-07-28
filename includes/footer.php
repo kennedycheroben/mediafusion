@@ -14,17 +14,17 @@ declare(strict_types=1);
             <!-- Column 1: Brand & Identity with Social Buttons -->
             <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
                 <a class="d-flex align-items-center mb-4 text-white text-decoration-none fw-bold" href="index.php" style="font-family: var(--font-heading); font-size: 1.2rem; letter-spacing: 1px;">
-                    <img src="assets/img/logo.png" alt="MediaFusion Logo" class="brand-logo me-2" style="height: 30px;">
-                    <span style="text-shadow: 0 0 10px rgba(0, 243, 255, 0.4); font-weight: 800;">MediaFusion</span>
+                    <img src="assets/img/logo.png" alt="Unify Logo" class="brand-logo me-2" style="height: 30px;">
+                    <span style="text-shadow: 0 0 10px rgba(0, 243, 255, 0.4); font-weight: 800;">UNIFY</span>
                 </a>
                 <p class="small text-secondary mb-4" style="line-height: 1.8; opacity: 0.9;">
                     Powerful workspace for creators to distribute content and scale across multi-platform networks.
                 </p>
                 <div class="d-flex gap-2" style="margin-top: 20px;">
-                    <a href="https://www.youtube.com/@MediaFusion" target="_blank" class="social-glow-btn social-yt" title="YouTube"><i class="fa-brands fa-youtube"></i></a>
-                    <a href="https://www.tiktok.com/@mediafusion" target="_blank" class="social-glow-btn social-tt" title="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+                    <a href="https://www.youtube.com/@UnifySocialMedia" target="_blank" class="social-glow-btn social-yt" title="YouTube"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://www.tiktok.com/@unifysocialhub" target="_blank" class="social-glow-btn social-tt" title="TikTok"><i class="fa-brands fa-tiktok"></i></a>
                     <a href="https://web.facebook.com/profile.php?id=61589997259788" target="_blank" class="social-glow-btn social-fb" title="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
-                    <a href="https://www.instagram.com/mediafusion" target="_blank" class="social-glow-btn social-ig" title="Instagram"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="https://www.instagram.com/unifysocialhub" target="_blank" class="social-glow-btn social-ig" title="Instagram"><i class="fa-brands fa-instagram"></i></a>
                 </div>
             </div>
 
@@ -91,7 +91,7 @@ declare(strict_types=1);
         <div class="row">
             <div class="col-12">
                 <p class="small text-secondary mb-0 text-center" style="font-size: 0.8rem; letter-spacing: 0.5px;">
-                    &copy; <?= date('Y') ?> MediaFusion. All Rights Reserved.
+                    &copy; <?= date('Y') ?> Unify Studios. All Rights Reserved.
                 </p>
             </div>
         </div>

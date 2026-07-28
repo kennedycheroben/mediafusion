@@ -13,7 +13,7 @@ include __DIR__ . '/header.php';
     <div class="portal-card">
         <div class="glass-card card-magenta">
             <div class="text-center mb-4">
-                <img src="assets/img/logo.png" alt="MediaFusion Logo" class="portal-logo portal-logo-magenta mb-3">
+                <img src="assets/img/logo.png" alt="Unify Logo" class="portal-logo portal-logo-magenta mb-3">
                 <h1 class="text-gradient-magenta" style="font-size:1.7rem;">Request Access</h1>
                 <p class="text-secondary" style="font-size:.88rem;margin-top:.35rem;">Create your operator profile to begin distribution.</p>
             </div>

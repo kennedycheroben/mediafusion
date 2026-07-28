@@ -656,7 +656,7 @@ include 'header.php';
             <!-- 3. RIGHT COLUMN: THE MASTER CONTROLS PANEL (Vertical Stack with Independent Scroll) -->
             <div class="workbench-right">
                 <div class="workbench-right-scroll-container">
-                    <!-- Form wrapping all editing properties for MediaFusion ajax submission -->
+                    <!-- Form wrapping all editing properties for unified ajax submission -->
                     <form id="studioProcessingForm" onsubmit="executeStudioProcess(event)" class="d-flex flex-column gap-3">
                         
                         <!-- CARD A: Editor Settings -->
