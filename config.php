@@ -153,14 +153,16 @@ function MEDIAFUSION_detect_script_uri(string $script = 'callback.php'): string 
 
 
 // ---- Production overrides: when running on the live domain, prefer explicit production credentials
-$productionHost = 'MediaFusion.great-site.net';
+$appHostEnv = MEDIAFUSION_get_env('APP_HOST') ?: (parse_url(MEDIAFUSION_get_env('APP_URL'), PHP_URL_HOST) ?: '');
+$productionHost = $appHostEnv ?: 'fusionmedia.top';
 $hostLower = strtolower($_SERVER['HTTP_HOST'] ?? '');
-if (strpos($hostLower, $productionHost) !== false || MEDIAFUSION_get_env('MEDIAFUSION_FORCE_PRODUCTION') === '1') {
+if (($productionHost !== '' && strpos($hostLower, strtolower($productionHost)) !== false) || MEDIAFUSION_get_env('MEDIAFUSION_FORCE_PRODUCTION') === '1') {
     // Only set these if they are not already provided by environment (.env or server)
     $prodBase = 'https://' . $productionHost;
     if (MEDIAFUSION_get_env('MEDIAFUSION_OAUTH_REDIRECT_URI') === '') putenv('MEDIAFUSION_OAUTH_REDIRECT_URI=' . $prodBase . '/callback.php');
     if (MEDIAFUSION_get_env('TIKTOK_REDIRECT_URI') === '') putenv('TIKTOK_REDIRECT_URI=' . $prodBase . '/callback.php');
     if (MEDIAFUSION_get_env('META_REDIRECT_URI') === '') putenv('META_REDIRECT_URI=' . $prodBase . '/callback_meta.php');
+    if (MEDIAFUSION_get_env('GOOGLE_REDIRECT_URI') === '') putenv('GOOGLE_REDIRECT_URI=' . $prodBase . '/backend/google_auth.php');
 }
 
 // 1. Dynamic Database Connection Constants

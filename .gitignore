@@ -1,5 +1,11 @@
 # === Environment & Secrets ===
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
 
 # === PHP Dependencies ===
 vendor/
